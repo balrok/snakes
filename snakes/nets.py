@@ -3396,7 +3396,9 @@ class PetriNet(object):
         @return: PNML tree
         @rtype: `pnml.Tree`
         """
-        result = Tree(self.__pnmltag__, None, id=self.name)
+        root = Tree(self.__pnmltag__, None, id=self.name)
+        result = Tree("page", None, id=self.name + "_page")
+        root.add_child(result)
         decl = {}
         exec("pass", decl)
         for stmt in self._declare:
@@ -3433,7 +3435,7 @@ class PetriNet(object):
                             "source": trans.name,
                             "target": place.name
                         }))
-        return result
+        return root
 
     # apidoc skip
     @classmethod
