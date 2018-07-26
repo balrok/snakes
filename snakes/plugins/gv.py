@@ -160,7 +160,7 @@ class Graph(Cluster):
         else:
             dot = subprocess.Popen(
                 [
-                    engine, "-T" + filename.rsplit(".", 1)[-1],
+                    engine, "-T " + filename.rsplit(".", 1)[-1],
                     "-o" + filename, outfile.name
                 ],
                 stdin=subprocess.PIPE,
@@ -170,10 +170,9 @@ class Graph(Cluster):
         if not debug:
             os.unlink(outfile.name)
         if dot.returncode != 0:
-            if (stdout or "").strip() + (stderr or "").strip():
-                stdout = "\n*** Original error message follows ***\n " + stdout
-            raise IOError("%s exited with status %s%s" %
-                          (engine, dot.returncode, stdout))
+            stdout = "\n*** Original error message follows ***\n " + str(stdout)
+            raise IOError(
+                "%s exited with status %s%s" % (engine, dot.returncode, stdout))
 
     def layout(self, engine="dot", debug=False):
         if engine not in ("dot", "neato", "twopi", "circo", "fdp"):
