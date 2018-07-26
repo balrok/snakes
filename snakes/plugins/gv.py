@@ -153,14 +153,14 @@ class Graph(Cluster):
         if debug:
             dot = subprocess.Popen(
                 [
-                    engine, "-T" + filename.rsplit(".", 1)[-1],
+                    engine, "-T", filename.rsplit(".", 1)[-1],
                     "-o" + filename, outfile.name
                 ],
                 stdin=subprocess.PIPE)
         else:
             dot = subprocess.Popen(
                 [
-                    engine, "-T " + filename.rsplit(".", 1)[-1],
+                    engine, "-T", filename.rsplit(".", 1)[-1],
                     "-o" + filename, outfile.name
                 ],
                 stdin=subprocess.PIPE,
@@ -179,12 +179,12 @@ class Graph(Cluster):
             raise ValueError("unknown GraphViz engine %r" % engine)
         if debug:
             dot = subprocess.Popen(
-                [engine, "-Tplain"],
+                [engine, "-T", "plain"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE)
         else:
             dot = subprocess.Popen(
-                [engine, "-Tplain"],
+                [engine, "-T", "plain"],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
