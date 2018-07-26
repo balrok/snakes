@@ -238,7 +238,7 @@ def trans_attr(trans, attr):
     pass
 
 
-def arc_attr(label, attr):
+def arc_attr(label, attr, *args, **kwargs):
     if label == snk.Value(snk.dot):
         del attr["label"]
     elif isinstance(label, snk.Test):

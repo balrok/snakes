@@ -313,13 +313,13 @@ def extend(module):
                 for place, label in trans.input():
                     attr = dict(arrowhead="normal", label=" %s " % label)
                     if arc_attr:
-                        arc_attr(label, attr)
+                        arc_attr(label, attr, graph, nodemap, trans, place)
                     graph.add_edge(nodemap[place.name], nodemap[trans.name],
                                    attr)
                 for place, label in trans.output():
                     attr = dict(arrowhead="normal", label=" %s " % label)
                     if arc_attr:
-                        arc_attr(label, attr)
+                        arc_attr(label, attr, graph, nodemap, trans, place)
                     graph.add_edge(nodemap[trans.name], nodemap[place.name],
                                    attr)
 
