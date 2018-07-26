@@ -123,11 +123,13 @@ import snakes.plugins
 from snakes.plugins import new_instance
 from snakes.compat import *
 
-class Action (object) :
+
+class Action(object):
     """Models one action with a name, a direction (send or receive)
     and parameters.
     """
-    def __init__ (self, name, send, params) :
+
+    def __init__(self, name, send, params):
         """Constructor. The direction is passed as a Boolean: `True`
         for a send action, `False` for a receive.
 
@@ -143,9 +145,11 @@ class Action (object) :
         self.name = name
         self.send = send
         self.params = list(params)
+
     __pnmltag__ = "action"
+
     # apidoc skip
-    def __pnmldump__ (self) :
+    def __pnmldump__(self):
         """
         >>> Action('a', True, [Value(1), Variable('x')]).__pnmldump__()
         <?xml version="1.0" encoding="utf-8"?>
@@ -158,15 +162,15 @@ class Action (object) :
          </action>
         </pnml>
         """
-        result = Tree(self.__pnmltag__, None,
-                      name=self.name,
-                      send=str(self.send))
-        for param in self.params :
+        result = Tree(
+            self.__pnmltag__, None, name=self.name, send=str(self.send))
+        for param in self.params:
             result.add_child(Tree.from_obj(param))
         return result
+
     # apidoc stop
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """
         >>> t = Action('a', True, [Value(1), Variable('x')]).__pnmldump__()
         >>> Action.__pnmlload__(t)
@@ -174,7 +178,8 @@ class Action (object) :
         """
         params = [Tree.to_obj(child) for child in tree.children]
         return cls(tree["name"], tree["send"] == "True", params)
-    def __str__ (self) :
+
+    def __str__(self):
         """
         >>> a = Action('a', True, [Value(1), Variable('x')])
         >>> str(a)
@@ -183,11 +188,12 @@ class Action (object) :
         >>> str(a)
         'a?(1,x)'
         """
-        if self.send :
+        if self.send:
             return "%s!(%s)" % (self.name, ",".join([str(p) for p in self]))
-        else :
+        else:
             return "%s?(%s)" % (self.name, ",".join([str(p) for p in self]))
-    def __repr__ (self) :
+
+    def __repr__(self):
         """
         >>> a = Action('a', True, [Value(1), Variable('x')])
         >>> repr(a)
@@ -196,10 +202,10 @@ class Action (object) :
         >>> repr(a)
         "Action('a', False, [Value(1), Variable('x')])"
         """
-        return "%s(%s, %s, [%s])" % (self.__class__.__name__, repr(self.name),
-                                     str(self.send),
-                                     ", ".join([repr(p) for p in self]))
-    def __len__ (self) :
+        return "%s(%s, %s, [%s])" % (self.__class__.__name__, repr(
+            self.name), str(self.send), ", ".join([repr(p) for p in self]))
+
+    def __len__(self):
         """Return the number of parameters, aka the arity of the action.
 
         >>> len(Action('a', True, [Value(1), Variable('x')]))
@@ -209,15 +215,17 @@ class Action (object) :
         @rtype: non negative `int`
         """
         return len(self.params)
-    def __iter__ (self) :
+
+    def __iter__(self):
         """Iterate on the parameters
 
         >>> list(Action('a', True, [Value(1), Variable('x')]))
         [Value(1), Variable('x')]
         """
-        for action in self.params :
+        for action in self.params:
             yield action
-    def __eq__ (self, other) :
+
+    def __eq__(self, other):
         """Two actions are equal if they have the same name, same send
         flags and same parameters.
 
@@ -238,19 +246,21 @@ class Action (object) :
             otherwise
         @rtype: `bool`
         """
-        if self.name != other.name :
+        if self.name != other.name:
             return False
-        elif self.send != other.send :
+        elif self.send != other.send:
             return False
-        elif len(self.params) != len(other.params) :
+        elif len(self.params) != len(other.params):
             return False
-        for p, q in zip(self.params, other.params) :
-            if p != q :
+        for p, q in zip(self.params, other.params):
+            if p != q:
                 return False
         return True
-    def __ne__ (self, other) :
+
+    def __ne__(self, other):
         return not (self == other)
-    def copy (self, subst=None) :
+
+    def copy(self, subst=None):
         """Copy the action, optionally substituting its parameters.
 
         >>> a = Action('a', True, [Variable('x'), Value(2)])
@@ -270,10 +280,11 @@ class Action (object) :
         """
         result = self.__class__(self.name, self.send,
                                 [p.copy() for p in self.params])
-        if subst is not None :
+        if subst is not None:
             result.substitute(subst)
         return result
-    def substitute (self, subst) :
+
+    def substitute(self, subst):
         """Substitute the parameters according to `subst`
 
         >>> a = Action('a', True, [Variable('x'), Value(2)])
@@ -285,10 +296,11 @@ class Action (object) :
             mapping variables names to `Value` or `Variable`
         @type subst: `Substitution`
         """
-        for i, p in enumerate(self.params) :
-            if isinstance(p, Variable) and p.name in subst :
+        for i, p in enumerate(self.params):
+            if isinstance(p, Variable) and p.name in subst:
                 self.params[i] = subst(p.name)
-    def vars (self) :
+
+    def vars(self):
         """
         >>> Action('a', True, [Value(3), Variable('x'), Variable('y'), Variable('x')]).vars() == set(['x', 'y'])
         True
@@ -298,7 +310,8 @@ class Action (object) :
         @rtype: `set` of `str`
         """
         return set(p.name for p in self.params if isinstance(p, Variable))
-    def __and__ (self, other) :
+
+    def __and__(self, other):
         """Compute an unification of two conjugated actions.
 
         An unification is a `Substitution` that maps variable names to
@@ -341,36 +354,38 @@ class Action (object) :
         @return: a substitution that unify both actions
         @rtype: `Substitution`
         """
-        if (self.name != other.name) or (self.send == other.send) :
+        if (self.name != other.name) or (self.send == other.send):
             raise ConstraintError("actions not conjugated")
-        elif len(self) != len(other) :
+        elif len(self) != len(other):
             raise ConstraintError("arities do not match")
         result = Substitution()
-        for x, y in zip(self.params, other.params) :
+        for x, y in zip(self.params, other.params):
             # apply the unifier already computed
-            if isinstance(x, Variable) and x.name in result :
+            if isinstance(x, Variable) and x.name in result:
                 x = result(x.name)
-            if isinstance(y, Variable) and y.name in result :
+            if isinstance(y, Variable) and y.name in result:
                 y = result(y.name)
             # unify the current pair of parameters
-            if isinstance(x, Value) and isinstance(y, Value) :
-                if x.value != y.value :
+            if isinstance(x, Value) and isinstance(y, Value):
+                if x.value != y.value:
                     raise ConstraintError("incompatible values")
-            elif isinstance(x, Variable) and isinstance(y, Value) :
-                result += Substitution({x.name : y.copy()})
-            elif isinstance(x, Value) and isinstance(y, Variable) :
-                result += Substitution({y.name : x.copy()})
-            elif isinstance(x, Variable) and isinstance(y, Variable) :
-                if x.name != y.name :
-                    result += Substitution({x.name : y.copy()})
-            else :
+            elif isinstance(x, Variable) and isinstance(y, Value):
+                result += Substitution({x.name: y.copy()})
+            elif isinstance(x, Value) and isinstance(y, Variable):
+                result += Substitution({y.name: x.copy()})
+            elif isinstance(x, Variable) and isinstance(y, Variable):
+                if x.name != y.name:
+                    result += Substitution({x.name: y.copy()})
+            else:
                 raise ConstraintError("unexpected action parameter")
         return result
 
-class MultiAction (object) :
+
+class MultiAction(object):
     """Models a multiset of actions.
     """
-    def __init__ (self, actions) :
+
+    def __init__(self, actions):
         """The only restriction when building a multiaction is to
         avoid putting two conjugated actions in it. Indeed, this may
         lead to infinite Petri nets upon synchronisation. For example,
@@ -395,11 +410,13 @@ class MultiAction (object) :
         self._actions = []
         self._sndrcv = {}
         self._count = {}
-        for act in actions :
+        for act in actions:
             self.add(act)
+
     __pnmltag__ = "multiaction"
+
     # apidoc stop
-    def __pnmldump__ (self) :
+    def __pnmldump__(self):
         """
         >>> MultiAction([Action('a', True, [Variable('x')]),
         ...              Action('b', False, [Variable('y'), Value(2)])
@@ -421,8 +438,9 @@ class MultiAction (object) :
         """
         return Tree(self.__pnmltag__, None,
                     *(Tree.from_obj(action) for action in self._actions))
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """
         >>> t = MultiAction([Action('a', True, [Variable('x')]),
         ...                  Action('b', False, [Variable('y'), Value(2)])
@@ -432,23 +450,26 @@ class MultiAction (object) :
                      Action('b', False, [Variable('y'), Value(2)])])
         """
         return cls(child.to_obj() for child in tree.children)
-    def __repr__ (self) :
+
+    def __repr__(self):
         """
         >>> MultiAction([Action('a', True, [Variable('x')]),
         ...              Action('b', False, [Variable('y'), Value(2)])])
         MultiAction([Action('a', True, [Variable('x')]),
                      Action('b', False, [Variable('y'), Value(2)])])
         """
-        return "%s([%s])" % (self.__class__.__name__,
-                             ", ".join(repr(act) for act in self._actions))
-    def __str__ (self) :
+        return "%s([%s])" % (self.__class__.__name__, ", ".join(
+            repr(act) for act in self._actions))
+
+    def __str__(self):
         """
         >>> str(MultiAction([Action('a', True, [Variable('x')]),
         ...                  Action('b', False, [Variable('y'), Value(2)])]))
         '[a!(x), b?(y,2)]'
         """
         return "[%s]" % ", ".join(str(act) for act in self._actions)
-    def send (self, name) :
+
+    def send(self, name):
         """Returns the send flag of the action `name` in this
         multiaction.
 
@@ -461,7 +482,8 @@ class MultiAction (object) :
         (True, False)
         """
         return self._sndrcv[name]
-    def add (self, action) :
+
+    def add(self, action):
         """Add an action to the multiaction.
 
         This may raise `ConstraintError` if the added action is
@@ -470,12 +492,13 @@ class MultiAction (object) :
         @param action: the action to add
         @type action: `Action`
         """
-        if self._sndrcv.get(action.name, action.send) != action.send :
+        if self._sndrcv.get(action.name, action.send) != action.send:
             raise ConstraintError("conjugated actions in the same multiaction")
         self._sndrcv[action.name] = action.send
         self._count[action.name] = self._count.get(action.name, 0) + 1
         self._actions.append(action)
-    def remove (self, action) :
+
+    def remove(self, action):
         """Remove an action from the multiaction.
 
         This may raise `ValueError` if the removed action does belongs
@@ -486,10 +509,11 @@ class MultiAction (object) :
         """
         self._actions.remove(action)
         self._count[action.name] -= 1
-        if self._count[action.name] == 0 :
+        if self._count[action.name] == 0:
             del self._count[action.name]
             del self._sndrcv[action.name]
-    def __iter__ (self) :
+
+    def __iter__(self):
         """Iterate over the actions in the multiaction.
 
         >>> list(MultiAction([Action('a', True, [Variable('x')]),
@@ -497,9 +521,10 @@ class MultiAction (object) :
         [Action('a', True, [Variable('x')]),
          Action('b', False, [Variable('y'), Value(2)])]
         """
-        for action in self._actions :
+        for action in self._actions:
             yield action
-    def __len__ (self) :
+
+    def __len__(self):
         """Return the number of actions in a multiaction.
 
         >>> len(MultiAction([Action('a', True, [Variable('x')]),
@@ -510,7 +535,8 @@ class MultiAction (object) :
         @rtype: non negative `int`
         """
         return len(self._actions)
-    def substitute (self, subst) :
+
+    def substitute(self, subst):
         """Substitute bu `subt` all the actions in the multiaction.
 
         >>> m = MultiAction([Action('a', True, [Variable('x')]),
@@ -520,9 +546,10 @@ class MultiAction (object) :
         MultiAction([Action('a', True, [Value(4)]),
                      Action('b', False, [Variable('y'), Value(4)])])
         """
-        for action in self._actions :
+        for action in self._actions:
             action.substitute(subst)
-    def copy (self, subst=None) :
+
+    def copy(self, subst=None):
         """Copy the multiaction (and the actions is contains) optionally
         substituting it.
 
@@ -533,7 +560,8 @@ class MultiAction (object) :
         @rtype: `MultiAction`
         """
         return self.__class__(act.copy(subst) for act in self._actions)
-    def __contains__ (self, action) :
+
+    def __contains__(self, action):
         """Search an action in the multiaction.
 
         The searched action may be a complete `Action`, just an action
@@ -562,16 +590,17 @@ class MultiAction (object) :
             otherwise
         @rtype: `bool`
         """
-        if isinstance(action, Action) :
+        if isinstance(action, Action):
             return action in self._actions
-        elif isinstance(action, tuple) and len(action) == 2 :
+        elif isinstance(action, tuple) and len(action) == 2:
             return (action[0] in self._sndrcv
                     and self._sndrcv[action[0]] == action[1])
-        elif isinstance(action, str) :
+        elif isinstance(action, str):
             return action in self._count
-        else :
+        else:
             raise ValueError("invalid action specification")
-    def __add__ (self, other) :
+
+    def __add__(self, other):
         """Create a multiaction by adding the actions of two others.
 
         >>> m = MultiAction([Action('a', True, [Variable('x'), Value(2)]),
@@ -596,13 +625,14 @@ class MultiAction (object) :
         @return: the concatenated multiaction
         @rtype: `MultiAction`
         """
-        if isinstance(other, Action) :
+        if isinstance(other, Action):
             other = self.__class__([other])
         result = self.copy()
-        for action in other._actions :
+        for action in other._actions:
             result.add(action)
         return result
-    def __sub__ (self, other) :
+
+    def __sub__(self, other):
         """Create a multiaction by substracting the actions of two
         others.
 
@@ -621,13 +651,14 @@ class MultiAction (object) :
         @return: the resulting multiaction
         @rtype: `MultiAction`
         """
-        if isinstance(other, Action) :
+        if isinstance(other, Action):
             other = self.__class__([other])
         result = self.copy()
-        for action in other._actions :
+        for action in other._actions:
             result.remove(action)
         return result
-    def vars (self) :
+
+    def vars(self):
         """Return the set of variable names used in all the actions of
         the multiaction.
 
@@ -640,10 +671,11 @@ class MultiAction (object) :
         @rtype: `set` of `str`
         """
         result = set()
-        for action in self._actions :
+        for action in self._actions:
             result.update(action.vars())
         return result
-    def names (self) :
+
+    def names(self):
         """Return the set of action names used in the multiaction.
 
         >>> MultiAction([Action('a', True, [Variable('x'), Value(2)]),
@@ -655,7 +687,8 @@ class MultiAction (object) :
         @rtype: `set` of `str`
         """
         return set([action.name for action in self._actions])
-    def synchronise (self, other, name, common, allnames) :
+
+    def synchronise(self, other, name, common, allnames):
         """Search all the possible synchronisation on an action name with
         another multiaction.
 
@@ -703,50 +736,56 @@ class MultiAction (object) :
             Substitution)`
         """
         renamer = Substitution()
-        if common :
+        if common:
             names = WordSet(set(allnames) | self.names() | other.names())
-            for var in common :
-                renamer += Substitution({var : Variable(names.fresh(add=True))})
-        for left in (act for act in self._actions if act.name == name) :
+            for var in common:
+                renamer += Substitution({var: Variable(names.fresh(add=True))})
+        for left in (act for act in self._actions if act.name == name):
             for right in (act for act in other._actions if act.name == name
-                          if act.send != left.send) :
+                          if act.send != left.send):
                 _left = left.copy(renamer)
-                try :
+                try:
                     unifier = _left & right
-                except :
+                except:
                     continue
                 _self = self.copy(renamer) - _left
                 _self.substitute(unifier)
                 _other = other - right
                 _other.substitute(unifier)
-                yield (_left.copy(unifier), _self + _other,
-                       unifier * renamer, unifier)
+                yield (_left.copy(unifier), _self + _other, unifier * renamer,
+                       unifier)
+
 
 @snakes.plugins.plugin("snakes.nets")
-def extend (module) :
-    class Transition (module.Transition) :
+def extend(module):
+    class Transition(module.Transition):
         """Class `Transition` is extended to allow a keyword argument
         `actions` in several of its methods `__init__` and `copy` (to
         replace a multiaction upon copy).
         """
+
         # apidoc stop
-        def __init__ (self, name, guard=None, **args) :
+        def __init__(self, name, guard=None, **args):
             self.actions = MultiAction(args.pop("actions", []))
             module.Transition.__init__(self, name, guard, **args)
-        def vars (self) :
+
+        def vars(self):
             return module.Transition.vars(self) | self.actions.vars()
-        def substitute (self, subst) :
+
+        def substitute(self, subst):
             module.Transition.substitute(self, subst)
             self.actions.substitute(subst)
-        def copy (self, name=None, **args) :
+
+        def copy(self, name=None, **args):
             actions = args.pop("actions", None)
             result = module.Transition.copy(self, name, **args)
-            if actions is None :
+            if actions is None:
                 result.actions = self.actions.copy()
-            else :
+            else:
                 result.actions = MultiAction(actions)
             return result
-        def __pnmldump__ (self) :
+
+        def __pnmldump__(self):
             """
             >>> m = MultiAction([Action('a', True, [Variable('x')]),
             ...                  Action('b', False, [Variable('y'), Value(2)])])
@@ -771,8 +810,9 @@ def extend (module) :
             result = module.Transition.__pnmldump__(self)
             result.add_child(Tree.from_obj(self.actions))
             return result
+
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             """
             >>> m = MultiAction([Action('a', True, [Variable('x')]),
             ...                  Action('b', False, [Variable('y'), Value(2)])])
@@ -784,8 +824,9 @@ def extend (module) :
             result = new_instance(cls, module.Transition.__pnmlload__(tree))
             result.actions = Tree.to_obj(tree.child(MultiAction.__pnmltag__))
             return result
-    class PetriNet (module.PetriNet) :
-        def synchronise (self, name) :
+
+    class PetriNet(module.PetriNet):
+        def synchronise(self, name):
             """Synchronise the net wrt `name`.
 
             @param name: the action name to be synchronised
@@ -795,69 +836,69 @@ def extend (module) :
             """
             snd = []
             rcv = []
-            for trans in self.transition() :
-                if (name, True) in trans.actions :
+            for trans in self.transition():
+                if (name, True) in trans.actions:
                     snd.append(trans)
-                elif (name, False) in trans.actions :
+                elif (name, False) in trans.actions:
                     rcv.append(trans)
             loop = True
             done = set()
-            while loop :
+            while loop:
                 loop = False
-                for _snd in snd :
-                    for _rcv in rcv :
-                        if (_snd.name, _rcv.name) in done :
+                for _snd in snd:
+                    for _rcv in rcv:
+                        if (_snd.name, _rcv.name) in done:
                             continue
-                        try :
+                        try:
                             _s, _r = _snd.vars(), _rcv.vars()
-                            new = _snd.actions.synchronise(_rcv.actions,
-                                                           name,
-                                                           _s & _r, _s | _r)
-                        except ConstraintError :
+                            new = _snd.actions.synchronise(
+                                _rcv.actions, name, _s & _r, _s | _r)
+                        except ConstraintError:
                             continue
-                        for a, m, s, r in new :
+                        for a, m, s, r in new:
                             t = self._synchronise(
-                                _snd, s.restrict(_snd.vars()),
-                                _rcv, r.restrict(_rcv.vars()),
-                                m, a)
-                            if (name, True) in t.actions :
+                                _snd, s.restrict(_snd.vars()), _rcv,
+                                r.restrict(_rcv.vars()), m, a)
+                            if (name, True) in t.actions:
                                 snd.append(t)
                                 loop = True
-                            elif (name, False) in t.actions :
+                            elif (name, False) in t.actions:
                                 rcv.append(t)
                                 loop = True
                         done.add((_snd.name, _rcv.name))
-        def _synchronise (self, snd, s, rcv, r, actions, sync) :
-            def _str (binding) :
+
+        def _synchronise(self, snd, s, rcv, r, actions, sync):
+            def _str(binding):
                 return ",".join("%s=%s" % i for i in sorted(binding.items()))
+
             collect = []
-            for trans, subst in ((snd, s), (rcv, r)) :
+            for trans, subst in ((snd, s), (rcv, r)):
                 new = "%s[%s]" % (trans.name, _str(subst))
                 self.copy_transition(trans.name, new)
                 collect.append(new)
                 new = self.transition(new)
-                for var, val in subst.items() :
-                    if isinstance(val, Variable) :
-                        new.substitute(Substitution({var : val.name}))
-                    for place, label in new.input() :
-                        if var in label.vars() :
+                for var, val in subst.items():
+                    if isinstance(val, Variable):
+                        new.substitute(Substitution({var: val.name}))
+                    for place, label in new.input():
+                        if var in label.vars():
                             self.remove_input(place.name, new.name)
                             self.add_input(place.name, new.name,
                                            label.replace(Variable(var), val))
-                    for place, label in new.output() :
-                        if var in label.vars() :
+                    for place, label in new.output():
+                        if var in label.vars():
                             self.remove_output(place.name, new.name)
                             self.add_output(place.name, new.name,
                                             label.replace(Variable(var), val))
                 new.substitute(subst)
-            merged = ("%s@(%s)" %
-                      (str(sync).replace("?", "").replace("!", ""),
-                       "+".join(collect)))
+            merged = ("%s@(%s)" % (str(sync).replace("?", "").replace("!", ""),
+                                   "+".join(collect)))
             self.merge_transitions(merged, collect, actions=actions)
-            for name in collect :
+            for name in collect:
                 self.remove_transition(name)
             return self.transition(merged)
-        def restrict (self, name) :
+
+        def restrict(self, name):
             """Restrict the net wrt `name`.
 
             @param name: the action name to be synchronised
@@ -865,11 +906,14 @@ def extend (module) :
             @return: the synchronised Petri net
             @rtype: `PetriNet`
             """
-            removed = [trans.name for trans in self.transition()
-                       if name in trans.actions]
-            for trans in removed :
+            removed = [
+                trans.name for trans in self.transition()
+                if name in trans.actions
+            ]
+            for trans in removed:
                 self.remove_transition(trans)
-        def scope (self,  name) :
+
+        def scope(self, name):
             """Scope the net wrt `name`, this is equivalent to apply
             synchronisation followed by restriction on the same
             `name`.
@@ -882,7 +926,8 @@ def extend (module) :
 
             self.synchronise(name)
             self.restrict(name)
-        def merge_transitions (self, target, sources, **args) :
+
+        def merge_transitions(self, target, sources, **args):
             """Accepts a keyword parameter `actions` to change the
             multiaction of the resulting transition. If `actions` is
             not given, the multiaction of the new transition is the
@@ -894,14 +939,15 @@ def extend (module) :
             """
             actions = args.pop("actions", None)
             module.PetriNet.merge_transitions(self, target, sources, **args)
-            if actions is None :
+            if actions is None:
                 actions = MultiAction()
-                for src in sources :
+                for src in sources:
                     actions += self.transition(src).actions
                 self.transition(target).actions = actions
-            else :
+            else:
                 self.transition(target).actions = MultiAction(actions)
-        def copy_transition (self, source, targets, **args) :
+
+        def copy_transition(self, source, targets, **args):
             """Accepts a keyword parameter `actions` to change the
             multiaction of the resulting transition. If `actions` is
             not given, the multiaction of the new transition is the
@@ -913,11 +959,12 @@ def extend (module) :
             """
             actions = args.pop("actions", None)
             module.PetriNet.copy_transition(self, source, targets, **args)
-            if actions is None :
+            if actions is None:
                 actions = self.transition(source).actions
-            else :
+            else:
                 actions = MultiAction(actions)
             old = self.transition(source)
-            for trans in iterate(targets) :
+            for trans in iterate(targets):
                 self.transition(trans).actions = actions.copy()
+
     return PetriNet, Transition, Action, MultiAction

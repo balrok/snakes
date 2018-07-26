@@ -31,69 +31,79 @@ import snakes.plugins
 from snakes.lang.python.parser import ast, parse
 from snakes.lang import unparse
 
-class DropLet (ast.NodeTransformer) :
-    def __init__ (self, names) :
+
+class DropLet(ast.NodeTransformer):
+    def __init__(self, names):
         ast.NodeTransformer.__init__(self)
         self.names = set(names)
         self.calls = []
-    def visit_Call (self, node) :
+
+    def visit_Call(self, node):
         func = node.func
-        if func.__class__.__name__ == "Name" and func.id in self.names :
-            self.calls.append((func.id,
-                               node.args and node.args[0].s or None,
-                               [(k.arg, unparse(k.value))
-                                for k in node.keywords]))
+        if func.__class__.__name__ == "Name" and func.id in self.names:
+            self.calls.append(
+                (func.id, node.args and node.args[0].s or None,
+                 [(k.arg, unparse(k.value)) for k in node.keywords]))
             return ast.Name(id="True")
         return node
 
-class DropTrue (ast.NodeTransformer) :
-    def visit_BoolOp (self, node) :
-        if node.op.__class__.__name__ == "And" :
-            values = [self.visit(v) for v in node.values
-                      if v.__class__.__name__ != "Name" or v.id != "True"]
-            if values :
+
+class DropTrue(ast.NodeTransformer):
+    def visit_BoolOp(self, node):
+        if node.op.__class__.__name__ == "And":
+            values = [
+                self.visit(v) for v in node.values
+                if v.__class__.__name__ != "Name" or v.id != "True"
+            ]
+            if values:
                 node.values[:] = values
                 return node
-            else :
+            else:
                 return ast.Name(id="True")
-        else :
+        else:
             return self.visit(node)
 
-def unlet (expr, *names) :
-    if not names :
+
+def unlet(expr, *names):
+    if not names:
         names = ["let"]
     drop = DropLet(names)
     new = DropTrue().visit(drop.visit(parse(expr)))
     return unparse(new), drop.calls
 
-class MakeLet (object) :
-    def __init__ (self, globals) :
+
+class MakeLet(object):
+    def __init__(self, globals):
         self.globals = globals
-    def match (self, match, binding) :
+
+    def match(self, match, binding):
         env = dict(binding)
         env.update(iter(self.globals))
         exec("", env)
         old = set(env)
         exec(match, env)
-        for name in set(env) - old :
+        for name in set(env) - old:
             binding[name] = env[name]
-    def __call__ (__self__, __match__=None, __raise__=False, **args) :
-        try :
+
+    def __call__(__self__, __match__=None, __raise__=False, **args):
+        try:
             __binding__ = inspect.stack()[1][0].f_locals["__binding__"]
-            for name, value in args.items() :
+            for name, value in args.items():
                 __binding__[name] = value
-            if __match__ :
+            if __match__:
                 __self__.match(__match__, __binding__)
-        except :
-            if __raise__ :
+        except:
+            if __raise__:
                 raise
             return False
         return True
 
+
 @snakes.plugins.plugin("snakes.nets")
-def extend (module) :
-    class PetriNet (module.PetriNet) :
-        def __init__ (self, name, **args) :
+def extend(module):
+    class PetriNet(module.PetriNet):
+        def __init__(self, name, **args):
             module.PetriNet.__init__(self, name, **args)
             self.globals["let"] = MakeLet(self.globals)
+
     return PetriNet, unlet

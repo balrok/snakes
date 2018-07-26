@@ -36,10 +36,11 @@ order.
 from snakes.plugins import plugin, new_instance
 from snakes.pnml import Tree
 
+
 @plugin("snakes.nets")
-def extend (module) :
-    class Transition (module.Transition) :
-        def label (self, *get, **set) :
+def extend(module):
+    class Transition(module.Transition):
+        def label(self, *get, **set):
             """Get and set labels for the transition. The labels given
             in `get` will be returned as a `tuple` and the labels
             assigned in `set` will be changed accordingly. If a label
@@ -56,17 +57,18 @@ def extend (module) :
             @raise KeyError: when a label given in `get` has not been
                 assigned previouly
             """
-            if not hasattr(self, "_labels") :
+            if not hasattr(self, "_labels"):
                 self._labels = {}
             result = tuple(self._labels[g] for g in get)
             self._labels.update(set)
-            if len(get) == 1 :
+            if len(get) == 1:
                 return result[0]
-            elif len(get) > 1 :
+            elif len(get) > 1:
                 return result
-            elif len(set) == 0 :
+            elif len(set) == 0:
                 return self._labels.copy()
-        def has_label (self, name, *names) :
+
+        def has_label(self, name, *names):
             """Check is a label has been assigned to the transition.
 
             @param name: the label to check
@@ -78,18 +80,20 @@ def extend (module) :
                 present or not in the transitions
             @rtype: `bool`
             """
-            if len(names) == 0 :
+            if len(names) == 0:
                 return name in self._labels
-            else :
-                return tuple(n in self._labels for n in (name,) + names)
+            else:
+                return tuple(n in self._labels for n in (name, ) + names)
+
         # apidoc stop
-        def copy (self, name=None, **options) :
-            if not hasattr(self, "_labels") :
+        def copy(self, name=None, **options):
+            if not hasattr(self, "_labels"):
                 self._labels = {}
             result = module.Transition.copy(self, name, **options)
             result._labels = self._labels.copy()
             return result
-        def __pnmldump__ (self) :
+
+        def __pnmldump__(self):
             """
             >>> t = Transition('t')
             >>> t.label(foo='bar', spam=42)
@@ -111,14 +115,14 @@ def extend (module) :
             </pnml>
             """
             t = module.Transition.__pnmldump__(self)
-            if hasattr(self, "_labels") :
-                for key, val in self._labels.items() :
-                    t.add_child(Tree("label", None,
-                                     Tree.from_obj(val),
-                                     name=key))
+            if hasattr(self, "_labels"):
+                for key, val in self._labels.items():
+                    t.add_child(
+                        Tree("label", None, Tree.from_obj(val), name=key))
             return t
+
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             """
             >>> old = Transition('t')
             >>> old.label(foo='bar', spam=42)
@@ -135,33 +139,37 @@ def extend (module) :
             t._labels = dict((lbl["name"], lbl.child().to_obj())
                              for lbl in tree.get_children("label"))
             return t
-    class Place (module.Place) :
-        def label (self, *get, **set) :
+
+    class Place(module.Place):
+        def label(self, *get, **set):
             "See documentation for `Transition.label` above"
-            if not hasattr(self, "_labels") :
+            if not hasattr(self, "_labels"):
                 self._labels = {}
             result = tuple(self._labels[g] for g in get)
             self._labels.update(set)
-            if len(get) == 1 :
+            if len(get) == 1:
                 return result[0]
-            elif len(get) > 1 :
+            elif len(get) > 1:
                 return result
-            elif len(set) == 0 :
+            elif len(set) == 0:
                 return self._labels.copy()
-        def has_label (self, name, *names) :
+
+        def has_label(self, name, *names):
             "See documentation for `Transition.has_label` above"
-            if len(names) == 0 :
+            if len(names) == 0:
                 return name in self._labels
-            else :
-                return tuple(n in self._labels for n in (name,) + names)
+            else:
+                return tuple(n in self._labels for n in (name, ) + names)
+
         # apidoc stop
-        def copy (self, name=None, **options) :
-            if not hasattr(self, "_labels") :
+        def copy(self, name=None, **options):
+            if not hasattr(self, "_labels"):
                 self._labels = {}
             result = module.Place.copy(self, name, **options)
             result._labels = self._labels.copy()
             return result
-        def __pnmldump__ (self) :
+
+        def __pnmldump__(self):
             """
             >>> p = Place('p')
             >>> p.label(foo='bar', spam=42)
@@ -187,14 +195,14 @@ def extend (module) :
             </pnml>
             """
             t = module.Place.__pnmldump__(self)
-            if hasattr(self, "_labels") :
-                for key, val in self._labels.items() :
-                    t.add_child(Tree("label", None,
-                                     Tree.from_obj(val),
-                                     name=key))
+            if hasattr(self, "_labels"):
+                for key, val in self._labels.items():
+                    t.add_child(
+                        Tree("label", None, Tree.from_obj(val), name=key))
             return t
+
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             """
             >>> old = Place('p')
             >>> old.label(foo='bar', spam=42)
@@ -211,33 +219,37 @@ def extend (module) :
             p._labels = dict((lbl["name"], lbl.child().to_obj())
                              for lbl in tree.get_children("label"))
             return p
-    class PetriNet (module.PetriNet) :
-        def label (self, *get, **set) :
+
+    class PetriNet(module.PetriNet):
+        def label(self, *get, **set):
             "See documentation for `Transition.label` above"
-            if not hasattr(self, "_labels") :
+            if not hasattr(self, "_labels"):
                 self._labels = {}
             result = tuple(self._labels[g] for g in get)
             self._labels.update(set)
-            if len(get) == 1 :
+            if len(get) == 1:
                 return result[0]
-            elif len(get) > 1 :
+            elif len(get) > 1:
                 return result
-            elif len(set) == 0 :
+            elif len(set) == 0:
                 return self._labels.copy()
-        def has_label (self, name, *names) :
+
+        def has_label(self, name, *names):
             "See documentation for `Transition.has_label` above"
-            if len(names) == 0 :
+            if len(names) == 0:
                 return name in self._labels
-            else :
-                return tuple(n in self._labels for n in (name,) + names)
+            else:
+                return tuple(n in self._labels for n in (name, ) + names)
+
         # apidoc stop
-        def copy (self, name=None, **options) :
-            if not hasattr(self, "_labels") :
+        def copy(self, name=None, **options):
+            if not hasattr(self, "_labels"):
                 self._labels = {}
             result = module.PetriNet.copy(self, name, **options)
             result._labels = self._labels.copy()
             return result
-        def __pnmldump__ (self) :
+
+        def __pnmldump__(self):
             """
             >>> n = PetriNet('n')
             >>> n.label(foo='bar', spam=42)
@@ -259,14 +271,14 @@ def extend (module) :
             </pnml>
             """
             t = module.PetriNet.__pnmldump__(self)
-            if hasattr(self, "_labels") :
-                for key, val in self._labels.items() :
-                    t.add_child(Tree("label", None,
-                                     Tree.from_obj(val),
-                                     name=key))
+            if hasattr(self, "_labels"):
+                for key, val in self._labels.items():
+                    t.add_child(
+                        Tree("label", None, Tree.from_obj(val), name=key))
             return t
+
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             """
             >>> old = PetriNet('n')
             >>> old.label(foo='bar', spam=42)
@@ -283,14 +295,17 @@ def extend (module) :
             n._labels = dict((lbl["name"], lbl.child().to_obj())
                              for lbl in tree.get_children("label"))
             return n
-        def merge_places (self, target, sources, **options) :
+
+        def merge_places(self, target, sources, **options):
             module.PetriNet.merge_places(self, target, sources, **options)
             new = self.place(target)
-            for place in sources :
+            for place in sources:
                 new.label(**dict(self.place(place).label()))
-        def merge_transitions (self, target, sources, **options) :
+
+        def merge_transitions(self, target, sources, **options):
             module.PetriNet.merge_transitions(self, target, sources, **options)
             new = self.transition(target)
-            for trans in sources :
+            for trans in sources:
                 new.label(**dict(self.transition(trans).label()))
+
     return Transition, Place, PetriNet

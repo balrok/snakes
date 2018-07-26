@@ -59,9 +59,11 @@ from snakes.compat import *
 from snakes.plugins import plugin, new_instance
 from snakes.pnml import Tree
 
-class Position (object) :
+
+class Position(object):
     "The position of a node"
-    def __init__ (self, x, y) :
+
+    def __init__(self, x, y):
         """Constructor expects the Cartesian coordinates of the node,
         they can be provided as `float` or `int`.
 
@@ -72,19 +74,23 @@ class Position (object) :
         """
         self.__dict__["x"] = x
         self.__dict__["y"] = y
+
     # apidoc skip
-    def __str__ (self) :
+    def __str__(self):
         return "(%s, %s)" % (str(self.x), str(self.y))
+
     # apidoc skip
-    def __repr__ (self) :
+    def __repr__(self):
         return "Position(%s, %s)" % (str(self.x), str(self.y))
+
     # apidoc skip
-    def __setattr__ (self, name, value) :
-        if name in ("x", "y") :
+    def __setattr__(self, name, value):
+        if name in ("x", "y"):
             raise AttributeError("readonly attribute")
-        else :
+        else:
             self.__dict__[name] = value
-    def moveto (self, x, y) :
+
+    def moveto(self, x, y):
         """Change current coordinates to the specified position
 
         @param x: horizontal position
@@ -93,7 +99,8 @@ class Position (object) :
         @type y: `float`
         """
         self.__init__(x, y)
-    def shift (self, dx, dy) :
+
+    def shift(self, dx, dy):
         """Shift current coordinates by the specified amount.
 
         @param dx: horizontal shift
@@ -102,7 +109,8 @@ class Position (object) :
         @type dy: `float`
         """
         self.__init__(self.x + dx, self.y + dy)
-    def __getitem__ (self, index) :
+
+    def __getitem__(self, index):
         """Access coordinates by index
 
         >>> Position(1, 2)[0]
@@ -118,13 +126,14 @@ class Position (object) :
         @type index: `int`
         @raise IndexError: when `index not in {0, 1}`
         """
-        if index == 0 :
+        if index == 0:
             return self.x
-        elif index == 1 :
+        elif index == 1:
             return self.y
-        else :
+        else:
             raise IndexError("Position index out of range")
-    def __iter__ (self) :
+
+    def __iter__(self):
         """Successively yield `x` and `y` coordinates
 
         >>> list(Position(1, 2))
@@ -132,7 +141,8 @@ class Position (object) :
         """
         yield self.x
         yield self.y
-    def __call__ (self) :
+
+    def __call__(self):
         """Return the position as a pair of values
 
         >>> Position(1, 2.0)()
@@ -143,10 +153,11 @@ class Position (object) :
         """
         return (self.x, self.y)
 
+
 @plugin("snakes.nets")
-def extend (module) :
-    class Place (module.Place) :
-        def __init__ (self, name, tokens=[], check=None, **args) :
+def extend(module):
+    class Place(module.Place):
+        def __init__(self, name, tokens=[], check=None, **args):
             """If no position is given `(0, 0)` is chosen
 
             >>> Place('p').pos
@@ -160,14 +171,16 @@ def extend (module) :
             x, y = args.pop("pos", (0, 0))
             self.pos = Position(x, y)
             module.Place.__init__(self, name, tokens, check, **args)
+
         # apidoc skip
-        def copy (self, name=None, **args) :
+        def copy(self, name=None, **args):
             x, y = args.pop("pos", self.pos())
             result = module.Place.copy(self, name, **args)
             result.pos.moveto(x, y)
             return result
+
         # apidoc skip
-        def __pnmldump__ (self) :
+        def __pnmldump__(self):
             """
             >>> p = Place('p', pos=(1, 2))
             >>> p.__pnmldump__()
@@ -185,18 +198,18 @@ def extend (module) :
             </pnml>
             """
             t = module.Place.__pnmldump__(self)
-            try :
+            try:
                 gfx = t.child("graphics")
-            except SnakesError :
+            except SnakesError:
                 gfx = Tree("graphics", None)
                 t.add_child(gfx)
-            gfx.add_child(Tree("position", None,
-                               x=str(self.pos.x),
-                               y=str(self.pos.y)))
+            gfx.add_child(
+                Tree("position", None, x=str(self.pos.x), y=str(self.pos.y)))
             return t
+
         # apidoc skip
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             """
             >>> old = Place('p', pos=(1, 2))
             >>> p = old.__pnmldump__()
@@ -209,15 +222,16 @@ def extend (module) :
             <class 'snakes.plugins.pos.Place'>
             """
             result = new_instance(cls, module.Place.__pnmlload__(tree))
-            try :
+            try:
                 p = tree.child("graphics").child("position")
                 x, y = eval(p["x"]), eval(p["y"])
                 result.pos = Position(x, y)
-            except SnakesError :
+            except SnakesError:
                 result.pos = Position(0, 0)
             return result
-    class Transition (module.Transition) :
-        def __init__ (self, name, guard=None, **args) :
+
+    class Transition(module.Transition):
+        def __init__(self, name, guard=None, **args):
             """If no position is given `(0, 0)` is chosen
 
             >>> Transition('t').pos
@@ -231,14 +245,16 @@ def extend (module) :
             x, y = args.pop("pos", (0, 0))
             self.pos = Position(x, y)
             module.Transition.__init__(self, name, guard, **args)
+
         # apidoc skip
-        def copy (self, name=None, **args) :
+        def copy(self, name=None, **args):
             x, y = args.pop("pos", self.pos())
             result = module.Transition.copy(self, name, **args)
             result.pos.moveto(x, y)
             return result
+
         # apidoc skip
-        def __pnmldump__ (self) :
+        def __pnmldump__(self):
             """
             >>> t = Transition('t', pos=(2, 1))
             >>> t.__pnmldump__()
@@ -252,14 +268,17 @@ def extend (module) :
             </pnml>
             """
             t = module.Transition.__pnmldump__(self)
-            t.add_child(Tree("graphics", None,
-                             Tree("position", None,
-                                  x=str(self.pos.x),
-                                  y=str(self.pos.y))))
+            t.add_child(
+                Tree(
+                    "graphics", None,
+                    Tree(
+                        "position", None, x=str(self.pos.x),
+                        y=str(self.pos.y))))
             return t
+
         # apidoc skip
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             """
             >>> old = Transition('t', pos=(2, 1))
             >>> p = old.__pnmldump__()
@@ -272,15 +291,16 @@ def extend (module) :
             <class 'snakes.plugins.pos.Transition'>
             """
             result = new_instance(cls, module.Transition.__pnmlload__(tree))
-            try :
+            try:
                 p = tree.child("graphics").child("position")
                 x, y = eval(p["x"]), eval(p["y"])
                 result.pos = Position(x, y)
-            except SnakesError :
+            except SnakesError:
                 result.pos = Position(0, 0)
             return result
-    class PetriNet (module.PetriNet) :
-        def add_place (self, place, **args) :
+
+    class PetriNet(module.PetriNet):
+        def add_place(self, place, **args):
             """Position can be set also when a place is added to the
             net.
 
@@ -298,22 +318,24 @@ def extend (module) :
             @keyword pos: the position of the added place
             @type pos: `tuple`
             """
-            if "pos" in args :
+            if "pos" in args:
                 x, y = args.pop("pos")
                 place.pos.moveto(x, y)
             module.PetriNet.add_place(self, place, **args)
-        def add_transition (self, trans, **args) :
+
+        def add_transition(self, trans, **args):
             """Position can be set also when a transitions is added to
             the net. See method `add_place` above.
 
             @keyword pos: the position of the added transition
             @type pos: `tuple`
             """
-            if "pos" in args :
+            if "pos" in args:
                 x, y = args.pop("pos")
                 trans.pos.moveto(x, y)
             module.PetriNet.add_transition(self, trans, **args)
-        def merge_places (self, target, sources, **args) :
+
+        def merge_places(self, target, sources, **args):
             """When places are merged, the position of the new place
             is the barycentre of the positions of the merged nodes.
             Optionally, position can be specified in the call the
@@ -334,28 +356,30 @@ def extend (module) :
             """
             pos = args.pop("pos", None)
             module.PetriNet.merge_places(self, target, sources, **args)
-            if pos is None :
+            if pos is None:
                 pos = reduce(complex.__add__,
                              (complex(*self._place[name].pos())
                               for name in sources)) / len(sources)
                 x, y = pos.real, pos.imag
-            else :
+            else:
                 x, y = pos
             self._place[target].pos.moveto(x, y)
-        def merge_transitions (self, target, sources, **args) :
+
+        def merge_transitions(self, target, sources, **args):
             """See method `merge_places` above.
             """
             pos = args.pop("pos", None)
             module.PetriNet.merge_transitions(self, target, sources, **args)
-            if pos is None :
+            if pos is None:
                 pos = reduce(complex.__add__,
                              (complex(*self._trans[name].pos())
                               for name in sources)) / len(sources)
                 x, y = pos.real, pos.imag
-            else :
+            else:
                 x, y = pos
             self._trans[target].pos.moveto(x, y)
-        def bbox (self) :
+
+        def bbox(self):
             """The bounding box of the net, that is, the smallest
             rectangle that contains all nodes coordinates.
 
@@ -363,20 +387,21 @@ def extend (module) :
                 ymax))`
             @rtype: tuple
             """
-            if len(self._node) == 0 :
+            if len(self._node) == 0:
                 return (0, 0), (0, 0)
-            else :
+            else:
                 nodes = iter(self._node.values())
                 xmin, ymin = next(nodes).pos()
                 xmax, ymax = xmin, ymin
-                for n in nodes :
+                for n in nodes:
                     x, y = n.pos()
                     xmin = min(xmin, x)
                     xmax = max(xmax, x)
                     ymin = min(ymin, y)
                     ymax = max(ymax, y)
                 return (xmin, ymin), (xmax, ymax)
-        def shift (self, dx, dy) :
+
+        def shift(self, dx, dy):
             """Shift every node by `(dx, dy)`
 
             @param dx: horizontal shift
@@ -384,13 +409,15 @@ def extend (module) :
             @param dy: vertical shift
             @type dy: `float`
             """
-            for node in self.node() :
+            for node in self.node():
                 node.pos.shift(dx, dy)
-        def transpose (self) :
+
+        def transpose(self):
             """Perform a clockwise 90 degrees rotation of node coordinates, ie,
             change every position `(x, y)` to `(-y, x)`
             """
-            for node in self.node() :
+            for node in self.node():
                 x, y = node.pos()
                 node.pos.moveto(-y, x)
+
     return Place, Transition, PetriNet, Position

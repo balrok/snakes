@@ -27,7 +27,6 @@ syntax tree, all these objects are inlined and fully instantiated.
 """
 
 # apidoc include "../../lang/ctlstar/ctlstar.pgen" first=6 last=35 lang="text"
-
 """
 ## Abstract syntax ##
 """

@@ -3,7 +3,6 @@
 @note: this plugin depends on plugins `clusters` and `status` that are
     automatically loaded
 """
-
 """
 ## Control-flow and buffers places ##
 
@@ -187,109 +186,120 @@ from snakes.plugins.status import Status, entry, exit, internal
 from snakes.data import cross
 from snakes.plugins.clusters import Cluster
 
-def _glue (op, one, two) :
+
+def _glue(op, one, two):
     result = one.__class__("(%s%s%s)" % (one.name, op, two.name))
-    def new (name) :
+
+    def new(name):
         return "[%s%s]" % (name, op)
-    for net in (one, two) :
+
+    for net in (one, two):
         result.clusters.add_child(Cluster())
         result._declare = list(set(result._declare) | set(net._declare))
         result.globals.update(net.globals)
-        for place in net.place() :
-            result.add_place(place.copy(new(place.name)),
-                             cluster=[-1]+net.clusters.get_path(place.name))
-        for trans in net.transition() :
-            result.add_transition(trans.copy(new(trans.name)),
-                                  cluster=[-1]+net.clusters.get_path(trans.name))
-            for place, label in trans.input() :
-                result.add_input(new(place.name),
-                                 new(trans.name),
-                                 label.copy())
-            for place, label in trans.output() :
-                result.add_output(new(place.name),
-                                  new(trans.name),
-                                  label.copy())
-        def new (name) :
+        for place in net.place():
+            result.add_place(
+                place.copy(new(place.name)),
+                cluster=[-1] + net.clusters.get_path(place.name))
+        for trans in net.transition():
+            result.add_transition(
+                trans.copy(new(trans.name)),
+                cluster=[-1] + net.clusters.get_path(trans.name))
+            for place, label in trans.input():
+                result.add_input(
+                    new(place.name), new(trans.name), label.copy())
+            for place, label in trans.output():
+                result.add_output(
+                    new(place.name), new(trans.name), label.copy())
+
+        def new(name):
             return "[%s%s]" % (op, name)
-    for status in result.status :
+
+    for status in result.status:
         result.status.merge(status)
         new = result.status(status)
-        if len(new) == 1 :
-            name  = "[%s%s%s]" % (",".join(sorted(one.status(status))),
-                                  op,
-                                  ",".join(sorted(two.status(status))))
-            if name != new[0] :
+        if len(new) == 1:
+            name = "[%s%s%s]" % (",".join(sorted(one.status(status))), op,
+                                 ",".join(sorted(two.status(status))))
+            if name != new[0]:
                 result.rename_node(new[0], name)
     return result
 
-@snakes.plugins.plugin("snakes.nets",
-                       depends=["snakes.plugins.clusters",
-                                "snakes.plugins.status"])
-def extend (module) :
+
+@snakes.plugins.plugin(
+    "snakes.nets",
+    depends=["snakes.plugins.clusters", "snakes.plugins.status"])
+def extend(module):
     """Essentially, class `PetriNet` is extended to support the binary
     operations discussed above."""
-    class PetriNet (module.PetriNet) :
-        def __or__ (self, other) :
+
+    class PetriNet(module.PetriNet):
+        def __or__(self, other):
             "Parallel composition"
             return _glue("|", self, other)
-        def __and__ (self, other) :
+
+        def __and__(self, other):
             "Sequential composition"
             result = _glue("&", self, other)
             remove = set()
-            for x, e in cross((self.status(exit), other.status(entry))) :
+            for x, e in cross((self.status(exit), other.status(entry))):
                 new = "[%s&%s]" % (x, e)
                 new_x, new_e = "[%s&]" % x, "[&%s]" % e
                 result.merge_places(new, (new_x, new_e), status=internal)
                 remove.update((new_x, new_e))
-            for p in remove :
+            for p in remove:
                 result.remove_place(p)
             return result
-        def __add__ (self, other) :
+
+        def __add__(self, other):
             "Choice"
             result = _glue("+", self, other)
-            for status in (entry, exit) :
+            for status in (entry, exit):
                 remove = set()
-                for l, r in cross((self.status(status),
-                                   other.status(status))) :
+                for l, r in cross((self.status(status), other.status(status))):
                     new = "[%s+%s]" % (l, r)
                     new_l, new_r = "[%s+]" % l, "[+%s]" % r
                     result.merge_places(new, (new_l, new_r), status=status)
                     remove.update((new_l, new_r))
-                for p in remove :
+                for p in remove:
                     result.remove_place(p)
             return result
-        def __mul__ (self, other) :
+
+        def __mul__(self, other):
             "Iteration"
             result = _glue("*", self, other)
             remove = set()
-            for e1, x1, e2 in cross((self.status(entry),
-                                     self.status(exit),
-                                     other.status(entry))) :
+            for e1, x1, e2 in cross((self.status(entry), self.status(exit),
+                                     other.status(entry))):
                 new = "[%s,%s*%s]" % (e1, x1, e2)
                 new_e1, new_x1 = "[%s*]" % e1, "[%s*]" % x1
                 new_e2 = "[*%s]" % e2
-                result.merge_places(new, (new_e1, new_x1, new_e2),
-                                    status=entry)
+                result.merge_places(
+                    new, (new_e1, new_x1, new_e2), status=entry)
                 remove.update((new_e1, new_x1, new_e2))
-            for p in remove :
+            for p in remove:
                 result.remove_place(p)
             return result
-        def hide (self, old, new=None) :
+
+        def hide(self, old, new=None):
             "Status hiding and renaming"
-            if new is None :
+            if new is None:
                 new = Status(None)
-            for node in self.status(old) :
+            for node in self.status(old):
                 self.set_status(node, new)
-        def __div__ (self, name) :
+
+        def __div__(self, name):
             "Buffer hiding"
             result = self.copy()
-            for node in result.node() :
+            for node in result.node():
                 result.rename_node(node.name, "[%s/%s]" % (node, name))
-            for status in result.status :
-                if status._value == name :
+            for status in result.status:
+                if status._value == name:
                     result.hide(status, status.__class__(status._name, None))
             return result
+
         # apidoc skip
-        def __truediv__ (self, other) :
+        def __truediv__(self, other):
             return self.__div__(other)
+
     return PetriNet

@@ -4,12 +4,15 @@ example."""
 
 import snakes.plugins
 
+
 @snakes.plugins.plugin("snakes.nets")
-def extend (module) :
+def extend(module):
     "Extends `module`"
-    class PetriNet (module.PetriNet) :
+
+    class PetriNet(module.PetriNet):
         "Extension of the class `PetriNet` in `module`"
-        def __init__ (self, name, **args) :
+
+        def __init__(self, name, **args):
             """Add new keyword argument `hello`
 
             >>> PetriNet('N').hello()
@@ -24,7 +27,9 @@ def extend (module) :
             """
             self._hello = args.pop("hello", "Hello from %s")
             module.PetriNet.__init__(self, name, **args)
-        def hello (self) :
+
+        def hello(self):
             "Ask the net to say hello"
             print(self._hello % self.name)
+
     return PetriNet

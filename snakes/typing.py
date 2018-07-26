@@ -66,17 +66,21 @@ from snakes.compat import *
 from snakes.data import cross
 from snakes.pnml import Tree
 
-def _iterable (obj, *types) :
-    for t in types :
-        try :
+
+def _iterable(obj, *types):
+    for t in types:
+        try:
             iter(t)
-        except :
-            def __iterable__ () :
+        except:
+
+            def __iterable__():
                 raise ValueError("iteration over non-sequence")
+
             obj.__iterable__ = __iterable__
             break
 
-class Type (object) :
+
+class Type(object):
     """Base class for all types. Implements operations `&`, `|`, `-`,
     `^` and `~` to build new types. Also implement the typechecking of
     several values. All the subclasses should implement the method
@@ -84,8 +88,9 @@ class Type (object) :
 
     This class is abstract and should not be instantiated.
     """
+
     # apidoc skip
-    def __init__ (self) :
+    def __init__(self):
         """Abstract method
 
         >>> Type()
@@ -96,14 +101,17 @@ class Type (object) :
         @raise NotImplementedError: when called
         """
         raise NotImplementedError("abstract class")
+
     # apidoc skip
-    def __eq__ (self, other) :
+    def __eq__(self, other):
         return (self.__class__ == other.__class__
                 and self.__dict__ == other.__dict__)
+
     # apidoc skip
-    def __hash__ (self) :
+    def __hash__(self):
         return hash(repr(self))
-    def __and__ (self, other) :
+
+    def __and__(self, other):
         """Intersection type.
 
         >>> Instance(int) & Greater(0)
@@ -114,11 +122,12 @@ class Type (object) :
         @return: the intersection of both types
         @rtype: `Type`
         """
-        if other is self :
+        if other is self:
             return self
-        else :
+        else:
             return _And(self, other)
-    def __or__ (self, other) :
+
+    def __or__(self, other):
         """Union type.
 
         >>> Instance(int) | Instance(bool)
@@ -129,11 +138,12 @@ class Type (object) :
         @return: the union of both types
         @rtype: `Type`
         """
-        if other is self :
+        if other is self:
             return self
-        else :
+        else:
             return _Or(self, other)
-    def __sub__ (self, other) :
+
+    def __sub__(self, other):
         """Substraction type.
 
         >>> Instance(int) - OneOf([0, 1, 2])
@@ -144,11 +154,12 @@ class Type (object) :
         @return: the type `self` minus the type `other`
         @rtype: `Type`
         """
-        if other is self :
+        if other is self:
             return tNothing
-        else :
+        else:
             return _Sub(self, other)
-    def __xor__ (self, other) :
+
+    def __xor__(self, other):
         """Disjoint union type.
 
         >>> Greater(0) ^ Instance(float)
@@ -159,11 +170,12 @@ class Type (object) :
         @return: the disjoint union of both types
         @rtype: `Type`
         """
-        if other is self :
+        if other is self:
             return tNothing
-        else :
+        else:
             return _Xor(self, other)
-    def __invert__ (self) :
+
+    def __invert__(self):
         """Complementary type.
 
         >>> ~ Instance(int)
@@ -173,8 +185,9 @@ class Type (object) :
         @rtype: `Type`
         """
         return _Invert(self)
+
     # apidoc skip
-    def __iterable__ (self) :
+    def __iterable__(self):
         """Called to test if a type is iterable
 
         Should be replaced in subclasses that are not iterable
@@ -182,7 +195,8 @@ class Type (object) :
         @raise ValueError: if not iterable
         """
         pass
-    def __call__ (self, *values) :
+
+    def __call__(self, *values):
         """Typecheck values.
 
         >>> Instance(int)(3, 4, 5)
@@ -196,15 +210,16 @@ class Type (object) :
             otherwise
         @rtype: `bool`
         """
-        for v in values :
-            if v not in self :
+        for v in values:
+            if v not in self:
                 return False
         return True
+
     __pnmltag__ = "type"
     _typemap = None
     # apidoc skip
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Load a `Type` from a PNML tree
 
         Uses the attribute `__pnmltype__` to know which type
@@ -221,42 +236,52 @@ class Type (object) :
         @return: the loaded type
         @rtype: `Type`
         """
-        if cls._typemap is None :
+        if cls._typemap is None:
             cls._typemap = {}
             for n, c in inspect.getmembers(sys.modules[cls.__module__],
-                                           inspect.isclass) :
-                try :
+                                           inspect.isclass):
+                try:
                     cls._typemap[c.__pnmltype__] = c
-                except AttributeError :
+                except AttributeError:
                     pass
         return cls._typemap[tree["domain"]].__pnmlload__(tree)
 
-class _BinaryType (Type) :
+
+class _BinaryType(Type):
     """A type build from two other ones
 
     This class allows to factorize the PNML related code for various
     binary types.
     """
-    def __pnmldump__ (self) :
-        return Tree(self.__pnmltag__, None,
-                    Tree("left", None, Tree.from_obj(self._left)),
-                    Tree("right", None, Tree.from_obj(self._right)),
-                    domain=self.__pnmltype__)
-    @classmethod
-    def __pnmlload__ (cls, tree) :
-        return cls(tree.child("left").child().to_obj(),
-                   tree.child("right").child().to_obj())
 
-class _And (_BinaryType) :
+    def __pnmldump__(self):
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree("left", None, Tree.from_obj(self._left)),
+            Tree("right", None, Tree.from_obj(self._right)),
+            domain=self.__pnmltype__)
+
+    @classmethod
+    def __pnmlload__(cls, tree):
+        return cls(
+            tree.child("left").child().to_obj(),
+            tree.child("right").child().to_obj())
+
+
+class _And(_BinaryType):
     "Intersection of two types"
     __pnmltype__ = "intersection"
-    def __init__ (self, left, right) :
+
+    def __init__(self, left, right):
         self._left = left
         self._right = right
         _iterable(self, left)
-    def __repr__ (self) :
+
+    def __repr__(self):
         return "(%s & %s)" % (repr(self._left), repr(self._right))
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         @param value: the value to check
@@ -265,22 +290,27 @@ class _And (_BinaryType) :
         @rtype: `bool`
         """
         return (value in self._left) and (value in self._right)
-    def __iter__ (self) :
+
+    def __iter__(self):
         self.__iterable__()
-        for value in self._left :
-            if value in self._right :
+        for value in self._left:
+            if value in self._right:
                 yield value
 
-class _Or (_BinaryType) :
+
+class _Or(_BinaryType):
     "Union of two types"
     __pnmltype__ = "union"
-    def __init__ (self, left, right) :
+
+    def __init__(self, left, right):
         self._left = left
         self._right = right
         _iterable(self, left, right)
-    def __repr__ (self) :
+
+    def __repr__(self):
         return "(%s | %s)" % (repr(self._left), repr(self._right))
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         @param value: the value to check
@@ -289,23 +319,28 @@ class _Or (_BinaryType) :
         @rtype: `bool`
         """
         return (value in self._left) or (value in self._right)
-    def __iter__ (self) :
+
+    def __iter__(self):
         self.__iterable__()
-        for value in (self._left & self._right) :
+        for value in (self._left & self._right):
             yield value
-        for value in (self._left ^ self._right) :
+        for value in (self._left ^ self._right):
             yield value
 
-class _Sub (_BinaryType) :
+
+class _Sub(_BinaryType):
     "Subtyping by difference"
     __pnmltype__ = "difference"
-    def __init__ (self, left, right)  :
+
+    def __init__(self, left, right):
         self._left = left
         self._right = right
         _iterable(self, left)
-    def __repr__ (self) :
+
+    def __repr__(self):
         return "(%s - %s)" % (repr(self._left), repr(self._right))
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         @param value: the value to check
@@ -314,22 +349,27 @@ class _Sub (_BinaryType) :
         @rtype: `bool`
         """
         return (value in self._left) and (value not in self._right)
-    def __iter__ (self) :
+
+    def __iter__(self):
         self.__iterable__()
-        for value in self._left :
-            if value not in self._right :
+        for value in self._left:
+            if value not in self._right:
                 yield value
 
-class _Xor (_BinaryType) :
+
+class _Xor(_BinaryType):
     "Exclusive union of two types"
     __pnmltype__ = "xor"
-    def __init__ (self, left, right) :
+
+    def __init__(self, left, right):
         self._left = left
         self._right = right
         _iterable(self, left, right)
-    def __repr__ (self) :
+
+    def __repr__(self):
         return "(%s ^ %s)" % (repr(self._left), repr(self._right))
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         @param value: the value to check
@@ -337,27 +377,32 @@ class _Xor (_BinaryType) :
         @return: `True` if `value` is in the type, `False` otherwise
         @rtype: `bool`
         """
-        if value in self._left :
+        if value in self._left:
             return value not in self._right
-        else :
+        else:
             return value in self._right
-    def __iter__ (self) :
+
+    def __iter__(self):
         self.__iterable__()
-        for value in self._left :
-            if value not in self._right :
+        for value in self._left:
+            if value not in self._right:
                 yield value
-        for value in self._right :
-            if value not in self._left :
+        for value in self._right:
+            if value not in self._left:
                 yield value
 
-class _Invert (Type) :
+
+class _Invert(Type):
     "Complement of a type"
-    def __init__ (self, base) :
+
+    def __init__(self, base):
         self._base = base
         _iterable(self, None)
-    def __repr__ (self) :
+
+    def __repr__(self):
         return "(~%s)" % repr(self._base)
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         @param value: the value to check
@@ -366,32 +411,46 @@ class _Invert (Type) :
         @rtype: `bool`
         """
         return (value not in self._base)
+
     __pnmltype__ = "complement"
-    def __pnmldump__ (self) :
-        return Tree(self.__pnmltag__, None,
-                    Tree.from_obj(self._base),
-                    domain=self.__pnmltype__)
+
+    def __pnmldump__(self):
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree.from_obj(self._base),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         return cls(tree.child().to_obj())
 
-class _All (Type) :
+
+class _All(Type):
     "A type allowing for any value"
-    def __init__ (self) :
+
+    def __init__(self):
         pass
-    def __and__ (self, other) :
+
+    def __and__(self, other):
         return other
-    def __or__ (self, other) :
+
+    def __or__(self, other):
         return self
-    def __sub__ (self, other) :
+
+    def __sub__(self, other):
         return ~other
-    def __xor__ (self, other) :
+
+    def __xor__(self, other):
         return ~other
-    def __invert__ (self) :
+
+    def __invert__(self):
         return tNothing
-    def __repr__ (self) :
+
+    def __repr__(self):
         return "tAll"
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         @param value: the value to check
@@ -400,7 +459,8 @@ class _All (Type) :
         @rtype: `bool`
         """
         return True
-    def __call__ (self, *values) :
+
+    def __call__(self, *values):
         """Typecheck values.
 
         @param values: values that have to be checked
@@ -408,8 +468,10 @@ class _All (Type) :
         @return: `True`
         """
         return True
+
     __pnmltype__ = "universal"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """
         >>> tAll.__pnmldump__()
         <?xml version="1.0" encoding="utf-8"?>
@@ -418,31 +480,41 @@ class _All (Type) :
         </pnml>
         """
         return Tree(self.__pnmltag__, None, domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """
         >>> Type.__pnmlload__(tAll.__pnmldump__())
         tAll
         """
         return cls()
 
-class _Nothing (Type) :
+
+class _Nothing(Type):
     "A types with no value"
-    def __init__ (self) :
+
+    def __init__(self):
         pass
-    def __and__ (self, other) :
+
+    def __and__(self, other):
         return self
-    def __or__ (self, other) :
+
+    def __or__(self, other):
         return other
-    def __sub__ (self, other) :
+
+    def __sub__(self, other):
         return self
-    def __xor__ (self, other) :
+
+    def __xor__(self, other):
         return other
-    def __invert__ (self) :
+
+    def __invert__(self):
         return tAll
-    def __repr__ (self) :
+
+    def __repr__(self):
         return "tNothing"
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         @param value: the value to check
@@ -451,7 +523,8 @@ class _Nothing (Type) :
         @rtype: `bool`
         """
         return False
-    def __call__ (self, *values) :
+
+    def __call__(self, *values):
         """Typecheck values.
 
         @param values: values that have to be checked
@@ -459,16 +532,21 @@ class _Nothing (Type) :
         @return: `False`
         """
         return False
-    def __iter__ (self) :
+
+    def __iter__(self):
         pass
+
     __pnmltype__ = "empty"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         return Tree(self.__pnmltag__, None, domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         return cls()
 
-class Instance (Type) :
+
+class Instance(Type):
     """A type whose values are all instances of one class.
 
     >>> [1, 2] in Instance(list)
@@ -476,7 +554,8 @@ class Instance (Type) :
     >>> (1, 2) in Instance(list)
     False
     """
-    def __init__ (self, _class) :
+
+    def __init__(self, _class):
         """Initialize the type
 
         >>> Instance(int)
@@ -488,8 +567,9 @@ class Instance (Type) :
         @rtype: `Instance`
         """
         self._class = _class
+
     # apidoc stop
-    def __contains__ (self, value) :
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> 5 in Instance(int)
@@ -503,7 +583,8 @@ class Instance (Type) :
         @rtype: `bool`
         """
         return isinstance(value, self._class)
-    def __repr__ (self) :
+
+    def __repr__(self):
         """String representation of the type, suitable for `eval`
 
         >>> repr(Instance(str))
@@ -513,8 +594,10 @@ class Instance (Type) :
         @rtype: `str`
         """
         return "Instance(%s)" % self._class.__name__
+
     __pnmltype__ = "instance"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump a type to a PNML tree
 
         >>> Instance(int).__pnmldump__()
@@ -528,11 +611,14 @@ class Instance (Type) :
         @return: the PNML representation of the type
         @rtype: `str`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree.from_obj(self._class),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree.from_obj(self._class),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Builds a type from its PNML representation
 
         >>> t = Instance(int).__pnmldump__()
@@ -546,20 +632,22 @@ class Instance (Type) :
         """
         return cls(tree.child().to_obj())
 
-def _full_name (fun) :
-    if fun.__module__ is None :
+
+def _full_name(fun):
+    if fun.__module__ is None:
         funname = fun.__name__
-        for modname in sys.modules :
-            try :
-                if sys.modules[modname].__dict__.get(funname, None) is fun :
+        for modname in sys.modules:
+            try:
+                if sys.modules[modname].__dict__.get(funname, None) is fun:
                     return ".".join([modname, funname])
-            except :
+            except:
                 pass
         return funname
-    else :
+    else:
         return ".".join([fun.__module__, fun.__name__])
 
-class TypeCheck (Type) :
+
+class TypeCheck(Type):
     """A type whose values are accepted by a given function.
 
     >>> def odd (val) :
@@ -571,7 +659,8 @@ class TypeCheck (Type) :
     >>> 3.0 in TypeCheck(odd)
     False
     """
-    def __init__ (self, checker, iterate=None) :
+
+    def __init__(self, checker, iterate=None):
         """Initialize the type, optionally, a function to iterate over
         the elements may be provided.
 
@@ -603,8 +692,9 @@ class TypeCheck (Type) :
         """
         self._check = checker
         self._iterate = iterate
+
     # apidoc stop
-    def __iter__ (self) :
+    def __iter__(self):
         """
         >>> def odd (val) :
         ...     return type(val) is int and (val % 2) == 1
@@ -622,11 +712,12 @@ class TypeCheck (Type) :
         >>> next(i), next(i), next(i)
         (1, -1, 3)
         """
-        try :
+        try:
             return iter(self._iterate())
-        except TypeError :
+        except TypeError:
             raise ValueError("type not iterable")
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> def odd (val) :
@@ -644,7 +735,8 @@ class TypeCheck (Type) :
         @rtype: `bool`
         """
         return self._check(value)
-    def __repr__ (self) :
+
+    def __repr__(self):
         """
         >>> def odd (val) :
         ...     return type(val) is int and (val % 2) == 1
@@ -659,15 +751,17 @@ class TypeCheck (Type) :
         >>> repr(TypeCheck(odd, odd_iter))
         'TypeCheck(snakes.typing.odd, snakes.typing.odd_iter)'
         """
-        if self._iterate is None :
-            return "%s(%s)" % (self.__class__.__name__,
-                               _full_name(self._check))
-        else :
+        if self._iterate is None:
+            return "%s(%s)" % (self.__class__.__name__, _full_name(
+                self._check))
+        else:
             return "%s(%s, %s)" % (self.__class__.__name__,
                                    _full_name(self._check),
                                    _full_name(self._iterate))
+
     __pnmltype__ = "checker"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to a PNML tree
 
         >>> import operator
@@ -710,12 +804,15 @@ class TypeCheck (Type) :
         @return: the type serialized to PNML
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree("checker", None, Tree.from_obj(self._check)),
-                    Tree("iterator", None, Tree.from_obj(self._iterate)),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree("checker", None, Tree.from_obj(self._check)),
+            Tree("iterator", None, Tree.from_obj(self._iterate)),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Build type from a PNML tree
 
         >>> import operator
@@ -734,10 +831,12 @@ class TypeCheck (Type) :
         @return: the loaded type
         @rtype: `TypeChecker`
         """
-        return cls(tree.child("checker").child().to_obj(),
-                   tree.child("iterator").child().to_obj())
+        return cls(
+            tree.child("checker").child().to_obj(),
+            tree.child("iterator").child().to_obj())
 
-class OneOf (Type) :
+
+class OneOf(Type):
     """A type whose values are explicitely enumerated.
 
     >>> 3 in OneOf(1, 2, 3, 4, 5)
@@ -745,14 +844,16 @@ class OneOf (Type) :
     >>> 0 in OneOf(1, 2, 3, 4, 5)
     False
     """
+
     # apidoc stop
-    def __init__ (self, *values) :
+    def __init__(self, *values):
         """
         @param values: the enumeration of the values in the type
         @type values: `object`
         """
         self._values = values
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> 3 in OneOf(1, 2, 3, 4, 5)
@@ -766,20 +867,24 @@ class OneOf (Type) :
         @rtype: `bool`
         """
         return value in self._values
-    def __repr__ (self) :
+
+    def __repr__(self):
         """
         >>> repr(OneOf(1, 2, 3, 4, 5))
         'OneOf(1, 2, 3, 4, 5)'
         """
         return "OneOf(%s)" % ", ".join([repr(val) for val in self._values])
-    def __iter__ (self) :
+
+    def __iter__(self):
         """
         >>> list(iter(OneOf(1, 2, 3, 4, 5)))
         [1, 2, 3, 4, 5]
         """
         return iter(self._values)
+
     __pnmltype__ = "enum"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to its PNML representation
 
         >>> OneOf(1, 2, 3, 4, 5).__pnmldump__()
@@ -807,11 +912,14 @@ class OneOf (Type) :
         @return: PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    *(Tree.from_obj(val) for val in self._values),
-                    **dict(domain=self.__pnmltype__))
+        return Tree(
+            self.__pnmltag__,
+            None,
+            *(Tree.from_obj(val) for val in self._values),
+            **dict(domain=self.__pnmltype__))
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Build type from its PNML representation
 
         >>> OneOf.__pnmlload__(OneOf(1, 2, 3, 4, 5).__pnmldump__())
@@ -824,7 +932,8 @@ class OneOf (Type) :
         """
         return cls(*(child.to_obj() for child in tree.children))
 
-class Collection (Type) :
+
+class Collection(Type):
     """A type whose values are a given container, holding items of a
     given type and ranging in a given interval.
 
@@ -835,7 +944,8 @@ class Collection (Type) :
     >>> [0, '1.1', 2, 3.3, 4] in Collection(Instance(list), tNumber, 3, 10) #wrong item
     False
     """
-    def __init__ (self, collection, items, min=None, max=None) :
+
+    def __init__(self, collection, items, min=None, max=None):
         """Initialise the type
 
         >>> Collection(Instance(list), tNumber, 3, 10)
@@ -855,8 +965,9 @@ class Collection (Type) :
         self._items = items
         self._max = max
         self._min = min
+
     # apidoc stop
-    def __contains__ (self, value) :
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> [0, 1.1, 2, 3.3, 4] in Collection(Instance(list), tNumber, 3, 10)
@@ -871,44 +982,44 @@ class Collection (Type) :
         @return: `True` if `value` is in the type, `False` otherwise
         @rtype: `bool`
         """
-        if value not in self._collection :
+        if value not in self._collection:
             return False
-        try :
+        try:
             len(value)
             iter(value)
-        except TypeError :
+        except TypeError:
             return False
-        if (self._min is not None) and (len(value) < self._min) :
+        if (self._min is not None) and (len(value) < self._min):
             return False
-        if (self._max is not None) and (len(value) > self._max) :
+        if (self._max is not None) and (len(value) > self._max):
             return False
-        for item in value :
-            if item not in self._items :
+        for item in value:
+            if item not in self._items:
                 return False
         return True
-    def __repr__ (self) :
+
+    def __repr__(self):
         """
         >>> repr(Collection(Instance(list), tNumber, 3, 10))
         'Collection(Instance(list), (Instance(int) | Instance(float)), min=3, max=10)'
         """
-        if (self._min is None) and (self._max is None) :
+        if (self._min is None) and (self._max is None):
             return "Collection(%s, %s)" % (repr(self._collection),
                                            repr(self._items))
-        elif self._min is None :
-            return "Collection(%s, %s, max=%s)" % (repr(self._collection),
-                                                   repr(self._items),
-                                                   repr(self._max))
-        elif self._max is None :
-            return "Collection(%s, %s, min=%s)" % (repr(self._collection),
-                                                   repr(self._items),
-                                                   repr(self._min))
-        else :
-            return "Collection(%s, %s, min=%s, max=%s)" % (repr(self._collection),
-                                                           repr(self._items),
-                                                           repr(self._min),
+        elif self._min is None:
+            return "Collection(%s, %s, max=%s)" % (repr(
+                self._collection), repr(self._items), repr(self._max))
+        elif self._max is None:
+            return "Collection(%s, %s, min=%s)" % (repr(
+                self._collection), repr(self._items), repr(self._min))
+        else:
+            return "Collection(%s, %s, min=%s, max=%s)" % (repr(
+                self._collection), repr(self._items), repr(self._min),
                                                            repr(self._max))
+
     __pnmltype__ = "collection"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to a PNML tree
 
         >>> Collection(Instance(list), tNumber, 3, 10).__pnmldump__()
@@ -950,14 +1061,17 @@ class Collection (Type) :
         @return: the PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree("container", None, Tree.from_obj(self._collection)),
-                    Tree("items", None, Tree.from_obj(self._items)),
-                    Tree("min", None, Tree.from_obj(self._min)),
-                    Tree("max", None, Tree.from_obj(self._max)),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree("container", None, Tree.from_obj(self._collection)),
+            Tree("items", None, Tree.from_obj(self._items)),
+            Tree("min", None, Tree.from_obj(self._min)),
+            Tree("max", None, Tree.from_obj(self._max)),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Load type from its PNML representation
 
         >>> t = Collection(Instance(list), tNumber, 3, 10).__pnmldump__()
@@ -970,12 +1084,14 @@ class Collection (Type) :
         @return: the loaded type
         @rtype: `Collection`
         """
-        return cls(tree.child("container").child().to_obj(),
-                   tree.child("items").child().to_obj(),
-                   tree.child("min").child().to_obj(),
-                   tree.child("max").child().to_obj())
+        return cls(
+            tree.child("container").child().to_obj(),
+            tree.child("items").child().to_obj(),
+            tree.child("min").child().to_obj(),
+            tree.child("max").child().to_obj())
 
-def List (items, min=None, max=None) :
+
+def List(items, min=None, max=None):
     """Shorthand for instantiating `Collection`
 
     >>> List(tNumber, min=3, max=10)
@@ -994,7 +1110,8 @@ def List (items, min=None, max=None) :
     """
     return Collection(Instance(list), items, min, max)
 
-def Tuple (items, min=None, max=None) :
+
+def Tuple(items, min=None, max=None):
     """Shorthand for instantiating `Collection`
 
     >>> Tuple(tNumber, min=3, max=10)
@@ -1013,7 +1130,8 @@ def Tuple (items, min=None, max=None) :
     """
     return Collection(Instance(tuple), items, min, max)
 
-def Set (items, min=None, max=None) :
+
+def Set(items, min=None, max=None):
     """Shorthand for instantiating `Collection`
 
     >>> Set(tNumber, min=3, max=10)
@@ -1032,7 +1150,8 @@ def Set (items, min=None, max=None) :
     """
     return Collection(Instance(set), items, min, max)
 
-class Mapping (Type) :
+
+class Mapping(Type):
     """A type whose values are mapping (eg, `dict`)
 
     >>> {'Yes': True, 'No': False} in Mapping(tString, tAll)
@@ -1040,7 +1159,8 @@ class Mapping (Type) :
     >>> {True: 1, False: 0} in Mapping(tString, tAll)
     False
     """
-    def __init__ (self, keys, items, _dict=Instance(dict)) :
+
+    def __init__(self, keys, items, _dict=Instance(dict)):
         """Initialise a mapping type
 
         >>> Mapping(tInteger, tFloat)
@@ -1059,8 +1179,9 @@ class Mapping (Type) :
         self._keys = keys
         self._items = items
         self._dict = _dict
+
     # apidoc stop
-    def __contains__ (self, value) :
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> {'Yes': True, 'No': False} in Mapping(tString, tAll)
@@ -1073,15 +1194,16 @@ class Mapping (Type) :
         @return: `True` if `value` is in the type, `False` otherwise
         @rtype: `bool`
         """
-        if not self._dict(value) :
+        if not self._dict(value):
             return False
-        for key, item in value.items() :
-            if key not in self._keys :
+        for key, item in value.items():
+            if key not in self._keys:
                 return False
-            if item not in self._items :
+            if item not in self._items:
                 return True
         return True
-    def __repr__ (self) :
+
+    def __repr__(self):
         """Return a string representation of the type suitable for `eval`
 
         >>> repr(Mapping(tString, tAll))
@@ -1090,11 +1212,12 @@ class Mapping (Type) :
         @return: precise string representation
         @rtype: `str`
         """
-        return "Mapping(%s, %s, %s)" % (repr(self._keys),
-                                        repr(self._items),
+        return "Mapping(%s, %s, %s)" % (repr(self._keys), repr(self._items),
                                         repr(self._dict))
+
     __pnmltype__ = "mapping"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to a PNML tree
 
         >>> from snakes.hashables import hdict
@@ -1121,13 +1244,16 @@ class Mapping (Type) :
         @return: PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree("keys", None, Tree.from_obj(self._keys)),
-                    Tree("items", None, Tree.from_obj(self._items)),
-                    Tree("container", None, Tree.from_obj(self._dict)),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree("keys", None, Tree.from_obj(self._keys)),
+            Tree("items", None, Tree.from_obj(self._items)),
+            Tree("container", None, Tree.from_obj(self._dict)),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Load type from its PNML representation
 
         >>> from snakes.hashables import hdict
@@ -1140,11 +1266,13 @@ class Mapping (Type) :
         @return: the loaded type
         @rtype: `Mapping`
         """
-        return cls(tree.child("keys").child().to_obj(),
-                   tree.child("items").child().to_obj(),
-                   tree.child("container").child().to_obj())
+        return cls(
+            tree.child("keys").child().to_obj(),
+            tree.child("items").child().to_obj(),
+            tree.child("container").child().to_obj())
 
-class Range (Type) :
+
+class Range(Type):
     """A type whose values are in a given range
 
     Notice that ranges are not built into the memory so that huge
@@ -1155,7 +1283,8 @@ class Range (Type) :
     >>> 4 in Range(1, 2**128, 2)
     False
     """
-    def __init__ (self, first, last, step=1) :
+
+    def __init__(self, first, last, step=1):
         """The values are those that the builtin `range(first, last,
         step)` would return.
 
@@ -1172,8 +1301,9 @@ class Range (Type) :
         @type step: `int`
         """
         self._first, self._last, self._step = first, last, step
+
     # apidoc stop
-    def __contains__ (self, value) :
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> 1 in Range(1, 10, 2)
@@ -1192,7 +1322,8 @@ class Range (Type) :
         """
         return ((self._first <= value < self._last)
                 and ((value - self._first) % self._step == 0))
-    def __repr__ (self) :
+
+    def __repr__(self):
         """Return a string representation of the type suitable for `eval`
 
         >>> repr(Range(1, 2**128, 2))
@@ -1201,11 +1332,12 @@ class Range (Type) :
         @return: precise string representation
         @rtype: `str`
         """
-        if self._step == 1 :
+        if self._step == 1:
             return "Range(%s, %s)" % (self._first, self._last)
-        else :
+        else:
             return "Range(%s, %s, %s)" % (self._first, self._last, self._step)
-    def __iter__ (self) :
+
+    def __iter__(self):
         """Iterate over the elements of the type
 
         >>> list(iter(Range(1, 10, 3)))
@@ -1215,8 +1347,10 @@ class Range (Type) :
         @rtype: `generator`
         """
         return iter(xrange(self._first, self._last, self._step))
+
     __pnmltype__ = "range"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to a PNML tree
 
         >>> Range(1, 10, 2).__pnmldump__()
@@ -1244,13 +1378,16 @@ class Range (Type) :
         @return: PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree("first", None, Tree.from_obj(self._first)),
-                    Tree("last", None, Tree.from_obj(self._last)),
-                    Tree("step", None, Tree.from_obj(self._step)),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree("first", None, Tree.from_obj(self._first)),
+            Tree("last", None, Tree.from_obj(self._last)),
+            Tree("step", None, Tree.from_obj(self._step)),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Build type from its PNML representation
 
         >>> Range.__pnmlload__(Range(1, 10, 2).__pnmldump__())
@@ -1261,11 +1398,13 @@ class Range (Type) :
         @return: the loaded type
         @rtype: `Range`
         """
-        return cls(tree.child("first").child().to_obj(),
-                   tree.child("last").child().to_obj(),
-                   tree.child("step").child().to_obj())
+        return cls(
+            tree.child("first").child().to_obj(),
+            tree.child("last").child().to_obj(),
+            tree.child("step").child().to_obj())
 
-class Greater (Type) :
+
+class Greater(Type):
     """A type whose values are greater than a minimum.
 
     The minimum and the checked values can be of any type as soon as
@@ -1276,7 +1415,8 @@ class Greater (Type) :
     >>> 3 in Greater(3)
     False
     """
-    def __init__ (self, min) :
+
+    def __init__(self, min):
         """Initialises the type
 
         >>> Greater(5)
@@ -1286,8 +1426,9 @@ class Greater (Type) :
         @type min: `object`
         """
         self._min = min
+
     # apidoc stop
-    def __contains__ (self, value) :
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> 5 in Greater(3)
@@ -1304,11 +1445,12 @@ class Greater (Type) :
         @return: `True` if `value` is in the type, `False` otherwise
         @rtype: `bool`
         """
-        try :
+        try:
             return value > self._min
-        except :
+        except:
             return False
-    def __repr__ (self) :
+
+    def __repr__(self):
         """Return a string representation of the type suitable for `eval`
 
         >>> repr(Greater(3))
@@ -1318,8 +1460,10 @@ class Greater (Type) :
         @rtype: `str`
         """
         return "Greater(%s)" % repr(self._min)
+
     __pnmltype__ = "greater"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to its PNML representation
 
         >>> Greater(42).__pnmldump__()
@@ -1335,11 +1479,14 @@ class Greater (Type) :
         @return: PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree.from_obj(self._min),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree.from_obj(self._min),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Build type from its PNLM representation
 
         >>> Greater.__pnmlload__(Greater(42).__pnmldump__())
@@ -1352,12 +1499,14 @@ class Greater (Type) :
         """
         return cls(tree.child().to_obj())
 
-class GreaterOrEqual (Type) :
+
+class GreaterOrEqual(Type):
     """A type whose values are greater or equal than a minimum.
 
     See the description of `Greater`
     """
-    def __init__ (self, min) :
+
+    def __init__(self, min):
         """Initialises the type
 
         >>> GreaterOrEqual(5)
@@ -1367,8 +1516,9 @@ class GreaterOrEqual (Type) :
         @type min: `object`
         """
         self._min = min
+
     # apidoc stop
-    def __contains__ (self, value) :
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> 5 in GreaterOrEqual(3)
@@ -1385,11 +1535,12 @@ class GreaterOrEqual (Type) :
         @return: `True` if `value` is in the type, `False` otherwise
         @rtype: `bool`
         """
-        try :
+        try:
             return value >= self._min
-        except :
+        except:
             False
-    def __repr__ (self) :
+
+    def __repr__(self):
         """Return a strign representation of the type suitable for `eval`
 
         >>> repr(GreaterOrEqual(3))
@@ -1399,8 +1550,10 @@ class GreaterOrEqual (Type) :
         @rtype: `str`
         """
         return "GreaterOrEqual(%s)" % repr(self._min)
+
     __pnmltype__ = "greatereq"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to its PNML representation
 
         >>> GreaterOrEqual(42).__pnmldump__()
@@ -1416,11 +1569,14 @@ class GreaterOrEqual (Type) :
         @return: PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree.from_obj(self._min),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree.from_obj(self._min),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Build type from its PNLM representation
 
         >>> GreaterOrEqual.__pnmlload__(GreaterOrEqual(42).__pnmldump__())
@@ -1433,12 +1589,14 @@ class GreaterOrEqual (Type) :
         """
         return cls(tree.child().to_obj())
 
-class Less (Type) :
+
+class Less(Type):
     """A type whose values are less than a maximum.
 
     See the description of `Greater`
     """
-    def __init__ (self, max) :
+
+    def __init__(self, max):
         """Initialises the type
 
         >>> Less(5)
@@ -1448,8 +1606,9 @@ class Less (Type) :
         @type min: `object`
         """
         self._max = max
+
     # apidoc stop
-    def __contains__ (self, value) :
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> 5.0 in Less(5)
@@ -1465,7 +1624,8 @@ class Less (Type) :
         @rtype: `bool`
         """
         return value < self._max
-    def __repr__ (self) :
+
+    def __repr__(self):
         """Return a string representation of the type suitable for `eval`
 
         >>> repr(Less(3))
@@ -1475,8 +1635,10 @@ class Less (Type) :
         @rtype: `str`
         """
         return "Less(%s)" % repr(self._max)
+
     __pnmltype__ = "less"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to its PNML representation
 
         >>> Less(3).__pnmldump__()
@@ -1492,11 +1654,14 @@ class Less (Type) :
         @return: PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree.from_obj(self._max),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree.from_obj(self._max),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Build type from its PNML representation
 
         >>> Less.__pnmlload__(Less(3).__pnmldump__())
@@ -1509,12 +1674,14 @@ class Less (Type) :
         """
         return cls(tree.child().to_obj())
 
-class LessOrEqual (Type) :
+
+class LessOrEqual(Type):
     """A type whose values are less than or equal to a maximum.
 
     See the description of `Greater`
     """
-    def __init__ (self, max) :
+
+    def __init__(self, max):
         """Initialises the type
 
         >>> LessOrEqual(5)
@@ -1525,8 +1692,9 @@ class LessOrEqual (Type) :
         """
 
         self._max = max
+
     # apidoc stop
-    def __contains__ (self, value) :
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> 5 in LessOrEqual(5.0)
@@ -1542,7 +1710,8 @@ class LessOrEqual (Type) :
         @rtype: `bool`
         """
         return value <= self._max
-    def __repr__ (self) :
+
+    def __repr__(self):
         """Return a string representation of the type suitable for `eval`
 
         >>> repr(LessOrEqual(3))
@@ -1552,8 +1721,10 @@ class LessOrEqual (Type) :
         @rtype: `str`
         """
         return "LessOrEqual(%s)" % repr(self._max)
+
     __pnmltype__ = "lesseq"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dump type to its PNML representation
 
         >>> LessOrEqual(4).__pnmldump__()
@@ -1569,11 +1740,14 @@ class LessOrEqual (Type) :
         @return: PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree.from_obj(self._max),
-                    domain=self.__pnmltype__)
+        return Tree(
+            self.__pnmltag__,
+            None,
+            Tree.from_obj(self._max),
+            domain=self.__pnmltype__)
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Build type from its PNML representation
 
         >>> LessOrEqual.__pnmlload__(LessOrEqual(4).__pnmldump__())
@@ -1586,7 +1760,8 @@ class LessOrEqual (Type) :
         """
         return cls(tree.child().to_obj())
 
-class CrossProduct (Type) :
+
+class CrossProduct(Type):
     """A type whose values are tuples, each component of them being in
     given types. The resulting type is the cartesian cross product of
     the compound types.
@@ -1596,7 +1771,8 @@ class CrossProduct (Type) :
     >>> (2, 4, 6) in CrossProduct(Range(1, 10), Range(1, 10, 2), Range(1, 10))
     False
     """
-    def __init__ (self, *types) :
+
+    def __init__(self, *types):
         """Initialise the type
 
         >>> CrossProduct(Instance(int), Instance(float))
@@ -1608,8 +1784,9 @@ class CrossProduct (Type) :
         """
         self._types = types
         _iterable(self, *types)
+
     # apidoc stop
-    def __repr__ (self) :
+    def __repr__(self):
         """Return a string representation of the type suitable for `eval`
 
         >>> repr(CrossProduct(Range(1, 10), Range(1, 10, 2), Range(1, 10)))
@@ -1619,7 +1796,8 @@ class CrossProduct (Type) :
         @rtype: `str`
         """
         return "CrossProduct(%s)" % ", ".join([repr(t) for t in self._types])
-    def __contains__ (self, value) :
+
+    def __contains__(self, value):
         """Check wether a value is in the type.
 
         >>> (1, 3, 5) in CrossProduct(Range(1, 10), Range(1, 10, 2), Range(1, 10))
@@ -1632,15 +1810,16 @@ class CrossProduct (Type) :
         @return: `True` if `value` is in the type, `False` otherwise
         @rtype: `bool`
         """
-        if not isinstance(value, tuple) :
+        if not isinstance(value, tuple):
             return False
-        elif len(self._types) != len(value) :
+        elif len(self._types) != len(value):
             return False
-        for item, t in zip(value, self._types) :
-            if not item in t :
+        for item, t in zip(value, self._types):
+            if not item in t:
                 return False
         return True
-    def __iter__ (self) :
+
+    def __iter__(self):
         """A cross product is iterable if so are all its components.
 
         >>> list(iter(CrossProduct(Range(1, 3), Range(3, 5))))
@@ -1656,8 +1835,10 @@ class CrossProduct (Type) :
         """
         self.__iterable__()
         return cross(self._types)
+
     __pnmltype__ = "crossproduct"
-    def __pnmldump__ (self) :
+
+    def __pnmldump__(self):
         """Dumps type to its PNML representation
 
         >>> CrossProduct(Instance(int), Instance(float)).__pnmldump__()
@@ -1676,11 +1857,14 @@ class CrossProduct (Type) :
         @return: PNML representation of the type
         @rtype: `snakes.pnml.Tree`
         """
-        return Tree(self.__pnmltag__, None,
-                    *(Tree.from_obj(t) for t in self._types),
-                    **dict(domain=self.__pnmltype__))
+        return Tree(
+            self.__pnmltag__,
+            None,
+            *(Tree.from_obj(t) for t in self._types),
+            **dict(domain=self.__pnmltype__))
+
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Build type from its PNML representation
 
         >>> t = CrossProduct(Instance(int), Instance(float)).__pnmldump__()
@@ -1694,17 +1878,18 @@ class CrossProduct (Type) :
         """
         return cls(*(child.to_obj() for child in tree.children))
 
-tAll        = _All()
-tNothing    = _Nothing()
-tString     = Instance(str)
-tList       = List(tAll)
-tInteger    = Instance(int)
-tNatural    = tInteger & GreaterOrEqual(0)
-tPositive   = tInteger & Greater(0)
-tFloat      = Instance(float)
-tNumber     = tInteger|tFloat
-tDict       = Instance(dict)
-tNone       = OneOf(None)
-tBoolean    = OneOf(True, False)
-tTuple      = Tuple(tAll)
-tPair       = Tuple(tAll, min=2, max=2)
+
+tAll = _All()
+tNothing = _Nothing()
+tString = Instance(str)
+tList = List(tAll)
+tInteger = Instance(int)
+tNatural = tInteger & GreaterOrEqual(0)
+tPositive = tInteger & Greater(0)
+tFloat = Instance(float)
+tNumber = tInteger | tFloat
+tDict = Instance(dict)
+tNone = OneOf(None)
+tBoolean = OneOf(True, False)
+tTuple = Tuple(tAll)
+tPair = Tuple(tAll, min=2, max=2)

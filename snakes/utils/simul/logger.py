@@ -4,6 +4,7 @@ import sys, time, re
 ## borrowed from http://code.activestate.com/recipes/475116/
 ##
 
+
 class TerminalController:
     """
     A class that can be used to portably generate formatted output to
@@ -39,32 +40,32 @@ class TerminalController:
     they will be stored in the `COLS` and `LINES` attributes.
     """
     # Cursor movement:
-    BOL = ''             #: Move the cursor to the beginning of the line
-    UP = ''              #: Move the cursor up one line
-    DOWN = ''            #: Move the cursor down one line
-    LEFT = ''            #: Move the cursor left one char
-    RIGHT = ''           #: Move the cursor right one char
+    BOL = ''  #: Move the cursor to the beginning of the line
+    UP = ''  #: Move the cursor up one line
+    DOWN = ''  #: Move the cursor down one line
+    LEFT = ''  #: Move the cursor left one char
+    RIGHT = ''  #: Move the cursor right one char
 
     # Deletion:
-    CLEAR_SCREEN = ''    #: Clear the screen and move to home position
-    CLEAR_EOL = ''       #: Clear to the end of the line.
-    CLEAR_BOL = ''       #: Clear to the beginning of the line.
-    CLEAR_EOS = ''       #: Clear to the end of the screen
+    CLEAR_SCREEN = ''  #: Clear the screen and move to home position
+    CLEAR_EOL = ''  #: Clear to the end of the line.
+    CLEAR_BOL = ''  #: Clear to the beginning of the line.
+    CLEAR_EOS = ''  #: Clear to the end of the screen
 
     # Output modes:
-    BOLD = ''            #: Turn on bold mode
-    BLINK = ''           #: Turn on blink mode
-    DIM = ''             #: Turn on half-bright mode
-    REVERSE = ''         #: Turn on reverse-video mode
-    NORMAL = ''          #: Turn off all modes
+    BOLD = ''  #: Turn on bold mode
+    BLINK = ''  #: Turn on blink mode
+    DIM = ''  #: Turn on half-bright mode
+    REVERSE = ''  #: Turn on reverse-video mode
+    NORMAL = ''  #: Turn off all modes
 
     # Cursor display:
-    HIDE_CURSOR = ''     #: Make the cursor invisible
-    SHOW_CURSOR = ''     #: Make the cursor visible
+    HIDE_CURSOR = ''  #: Make the cursor invisible
+    SHOW_CURSOR = ''  #: Make the cursor visible
 
     # Terminal size:
-    COLS = None          #: Width of the terminal (None for unknown)
-    LINES = None         #: Height of the terminal (None for unknown)
+    COLS = None  #: Width of the terminal (None for unknown)
+    LINES = None  #: Height of the terminal (None for unknown)
 
     # Foreground colors:
     BLACK = BLUE = GREEN = CYAN = RED = MAGENTA = YELLOW = WHITE = ''
@@ -90,16 +91,20 @@ class TerminalController:
         assumed to be a dumb terminal (i.e., have no capabilities).
         """
         # Curses isn't available on all platforms
-        try: import curses
-        except: return
+        try:
+            import curses
+        except:
+            return
 
         # If the stream isn't a tty, then assume it has no capabilities.
         if not term_stream.isatty(): return
 
         # Check the terminal type.  If we fail, then assume that the
         # terminal has no capabilities.
-        try: curses.setupterm()
-        except: return
+        try:
+            curses.setupterm()
+        except:
+            return
 
         # Look up numeric capabilities.
         self.COLS = curses.tigetnum('cols')
@@ -113,20 +118,23 @@ class TerminalController:
         # Colors
         set_fg = self._tigetstr('setf')
         if set_fg:
-            for i,color in zip(range(len(self._COLORS)), self._COLORS):
+            for i, color in zip(range(len(self._COLORS)), self._COLORS):
                 setattr(self, color, curses.tparm(set_fg, i) or '')
         set_fg_ansi = self._tigetstr('setaf')
         if set_fg_ansi:
-            for i,color in zip(range(len(self._ANSICOLORS)), self._ANSICOLORS):
+            for i, color in zip(
+                    range(len(self._ANSICOLORS)), self._ANSICOLORS):
                 setattr(self, color, curses.tparm(set_fg_ansi, i) or '')
         set_bg = self._tigetstr('setb')
         if set_bg:
-            for i,color in zip(range(len(self._COLORS)), self._COLORS):
-                setattr(self, 'BG_'+color, curses.tparm(set_bg, i) or '')
+            for i, color in zip(range(len(self._COLORS)), self._COLORS):
+                setattr(self, 'BG_' + color, curses.tparm(set_bg, i) or '')
         set_bg_ansi = self._tigetstr('setab')
         if set_bg_ansi:
-            for i,color in zip(range(len(self._ANSICOLORS)), self._ANSICOLORS):
-                setattr(self, 'BG_'+color, curses.tparm(set_bg_ansi, i) or '')
+            for i, color in zip(
+                    range(len(self._ANSICOLORS)), self._ANSICOLORS):
+                setattr(self, 'BG_' + color,
+                        curses.tparm(set_bg_ansi, i) or '')
 
     def _tigetstr(self, cap_name):
         # String capabilities can include "delays" of the form "$<2>".
@@ -149,38 +157,38 @@ class TerminalController:
         if s == '$$': return s
         else: return getattr(self, s[2:-1])
 
+
 ##
 ## functions
 ##
 
-_level = {"debug": "MAGENTA",
-          "info": "BLUE",
-          "warn": "YELLOW",
-          "error": "RED"}
+_level = {"debug": "MAGENTA", "info": "BLUE", "warn": "YELLOW", "error": "RED"}
 
 term = TerminalController()
 
-def log (level, message, header="", date=True, newline=True, clearline=True) :
+
+def log(level, message, header="", date=True, newline=True, clearline=True):
     text = "%s%s[%s%s%s]${NORMAL} %s%s%s" % (
-        "${BOL}" if clearline else "",
-        "${%s}" % _level.get(level.lower(), "NORMAL"),
-        time.strftime("%Y-%m-%d %H:%M:%S") if date else "",
-        " - " if date and header else "",
-        header,
-        message,
-        "${CLEAR_EOL}" if clearline else "",
-        "\n" if newline else "")
+        "${BOL}"
+        if clearline else "", "${%s}" % _level.get(level.lower(), "NORMAL"),
+        time.strftime("%Y-%m-%d %H:%M:%S") if date else "", " - "
+        if date and header else "", header, message, "${CLEAR_EOL}"
+        if clearline else "", "\n" if newline else "")
     sys.stderr.write(term.render(text))
     sys.stderr.flush()
 
-def debug (message, header="") :
+
+def debug(message, header=""):
     log("debug", message, header, date=True, newline=False, clearline=True)
 
-def info (message, header="") :
+
+def info(message, header=""):
     log("info", message, header, date=True, newline=True, clearline=True)
 
-def warn (message, header="") :
+
+def warn(message, header=""):
     log("warn", message, header, date=True, newline=True, clearline=True)
 
-def error (message, header="") :
+
+def error(message, header=""):
     log("error", message, header, date=True, newline=True, clearline=True)

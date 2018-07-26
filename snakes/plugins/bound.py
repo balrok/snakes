@@ -101,12 +101,15 @@ from snakes.data import iterate
 from snakes import ConstraintError
 import snakes.plugins
 
+
 @snakes.plugins.plugin("snakes.nets")
-def extend (module) :
+def extend(module):
     "Extends `module`"
-    class Place (module.Place) :
+
+    class Place(module.Place):
         "Extend places with boundedness"
-        def __init__ (self, name, tokens, check=None, **args) :
+
+        def __init__(self, name, tokens, check=None, **args):
             """Add new keyword argument `bound`
 
             @param args: plugin options
@@ -114,17 +117,18 @@ def extend (module) :
             @type bound: `int` or `(int, None)` or `(int, int)`
             """
             bound = args.pop("bound", (0, None))
-            if isinstance(bound, int) and bound >= 0 :
+            if isinstance(bound, int) and bound >= 0:
                 self._bound_min, self._bound_max = 0, bound
             elif (isinstance(bound, tuple) and len(bound) == 2
                   and isinstance(bound[0], int) and bound[0] >= 0
                   and ((isinstance(bound[1], int) and bound[1] >= bound[0])
-                       or bound[1] is None)) :
+                       or bound[1] is None)):
                 self._bound_min, self._bound_max = bound
-            else :
+            else:
                 raise ValueError("invalid value for parameter 'bound'")
             module.Place.__init__(self, name, tokens, check, **args)
-        def add (self, tokens) :
+
+        def add(self, tokens):
             """Add tokens to the place.
 
             @param tokens: a collection of tokens to be added to the
@@ -133,10 +137,13 @@ def extend (module) :
             @type tokens: `collection`
             """
             if (self._bound_max is not None
-                and len(self.tokens) + len(list(iterate(tokens))) > self._bound_max) :
-                raise ConstraintError("upper bound of place %r reached" % self.name)
+                    and len(self.tokens) + len(list(iterate(tokens))) >
+                    self._bound_max):
+                raise ConstraintError(
+                    "upper bound of place %r reached" % self.name)
             module.Place.add(self, tokens)
-        def remove (self, tokens) :
+
+        def remove(self, tokens):
             """Remove tokens from the place.
 
             @param tokens: a collection of tokens to be removed from the
@@ -144,10 +151,12 @@ def extend (module) :
                 used a a single value instead of as a collection
             @type tokens: `collection`
             """
-            if len(self.tokens) - len(list(iterate(tokens))) < self._bound_min :
-                raise ConstraintError("lower bound of place %r reached" % self.name)
+            if len(self.tokens) - len(list(iterate(tokens))) < self._bound_min:
+                raise ConstraintError(
+                    "lower bound of place %r reached" % self.name)
             module.Place.remove(self, tokens)
-        def reset (self, tokens) :
+
+        def reset(self, tokens):
             """Replace the marking with `tokens`.
 
             @param tokens: a collection of tokens to be removed from the
@@ -157,7 +166,9 @@ def extend (module) :
             """
             count = len(list(iterate(tokens)))
             bmax = count if self._bound_max is None else self._bound_max
-            if not (self._bound_min <= count <= bmax) :
-                raise ConstraintError("not within bounds of place %r" % self.name)
+            if not (self._bound_min <= count <= bmax):
+                raise ConstraintError(
+                    "not within bounds of place %r" % self.name)
             module.Place.reset(self, tokens)
+
     return Place

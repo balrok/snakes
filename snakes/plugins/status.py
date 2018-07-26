@@ -43,9 +43,11 @@ from snakes.compat import *
 from snakes.data import iterate
 from snakes.pnml import Tree
 
-class Status (object) :
+
+class Status(object):
     "The status of a node"
-    def __init__ (self, name, value=None) :
+
+    def __init__(self, name, value=None):
         """Initialize with a status name and an optional value
 
         @param name: the name of the status
@@ -56,9 +58,11 @@ class Status (object) :
         """
         self._name = name
         self._value = value
+
     __pnmltag__ = "status"
+
     # apidoc skip
-    def __pnmldump__ (self) :
+    def __pnmldump__(self):
         """Dump a `Status` as a PNML tree
 
         @return: PNML tree
@@ -79,12 +83,12 @@ class Status (object) :
          </status>
         </pnml>
         """
-        return Tree(self.__pnmltag__, None,
-                    Tree("name", self._name),
+        return Tree(self.__pnmltag__, None, Tree("name", self._name),
                     Tree("value", None, Tree.from_obj(self._value)))
+
     # apidoc skip
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Create a `Status` from a PNML tree
 
         >>> t = Status('foo', 42).__pnmldump__()
@@ -96,10 +100,12 @@ class Status (object) :
         @return: the status built
         @rtype: `Status`
         """
-        return cls(tree.child("name").data,
-                   tree.child("value").child().to_obj())
+        return cls(
+            tree.child("name").data,
+            tree.child("value").child().to_obj())
+
     # apidoc skip
-    def copy (self) :
+    def copy(self):
         """Return a copy of the status
 
         A status is normally never muted, so this may be useless,
@@ -109,8 +115,9 @@ class Status (object) :
         @rtype: `Status`
         """
         return self.__class__(self._name, self._value)
+
     # apidoc skip
-    def __str__ (self) :
+    def __str__(self):
         """Short textual representation
 
         >>> str(internal)
@@ -121,12 +128,13 @@ class Status (object) :
         @return: a textual representation
         @rtype: `str`
         """
-        if self._value is None :
+        if self._value is None:
             return str(self._name)
-        else :
+        else:
             return "%s(%s)" % (self._name, self._value)
+
     # apidoc skip
-    def __repr__ (self) :
+    def __repr__(self):
         """Detailed textual representation
 
         >>> repr(internal)
@@ -137,21 +145,23 @@ class Status (object) :
         @return: a textual representation suitable for `eval`
         @rtype: `str`
         """
-        if self._value is None :
+        if self._value is None:
             return "%s(%s)" % (self.__class__.__name__, repr(self._name))
-        else :
-            return "%s(%s,%s)" % (self.__class__.__name__,
-                                  repr(self._name), repr(self._value))
+        else:
+            return "%s(%s,%s)" % (self.__class__.__name__, repr(self._name),
+                                  repr(self._value))
+
     # apidoc skip
-    def __hash__ (self) :
+    def __hash__(self):
         """Hash a status
 
         @return: the hash value
         @rtype: `int`
         """
         return hash((self._name, self._value))
+
     # apidoc skip
-    def __eq__ (self, other) :
+    def __eq__(self, other):
         """Compares two status for equality
 
         They are equal if they have the same name and value
@@ -168,27 +178,32 @@ class Status (object) :
         @return: `True` is they are equal, `False` otherwise
         @rtype: `bool`
         """
-        try :
+        try:
             return (self._name, self._value) == (other._name, other._value)
-        except :
+        except:
             return False
+
     # apidoc skip
-    def __ne__ (self, other) :
-        return not(self == other)
+    def __ne__(self, other):
+        return not (self == other)
+
     # apidoc skip
-    def __add__ (self, other) :
-        if self == other :
+    def __add__(self, other):
+        if self == other:
             return self.copy()
-        else :
+        else:
             raise ConstraintError("incompatible status")
+
     # apidoc skip
-    def name (self) :
+    def name(self):
         return self._name
+
     # apidoc skip
-    def value (self) :
+    def value(self):
         return self._value
+
     # apidoc skip
-    def merge (self, net, nodes, name=None) :
+    def merge(self, net, nodes, name=None):
         """Merge `nodes` in `net` into a new node called `name`
 
         This does nothing by default, other status will refine this
@@ -205,11 +220,13 @@ class Status (object) :
         """
         pass
 
+
 entry = Status('entry')
 exit = Status('exit')
 internal = Status('internal')
 
-class Buffer (Status) :
+
+class Buffer(Status):
     """Status for buffer places, it can be used to merge all the nodes
     with the same buffer name. For example:
 
@@ -227,8 +244,9 @@ class Buffer (Status) :
     >>> p.tokens == MultiSet([0, 0, 1, 1, 2])
     True
     """
+
     # apidoc skip
-    def merge (self, net, nodes, name=None) :
+    def merge(self, net, nodes, name=None):
         """Merge `nodes` in `net`
 
         Buffer places with the status status `Buffer('buffer', None)`
@@ -246,15 +264,16 @@ class Buffer (Status) :
             be generated
         @type name: `str`
         """
-        if self._value is None :
+        if self._value is None:
             return
-        if name is None :
+        if name is None:
             name = "(%s)" % "+".join(sorted(nodes))
         net.merge_places(name, nodes, status=self)
-        for src in nodes :
+        for src in nodes:
             net.remove_place(src)
 
-def buffer (name) :
+
+def buffer(name):
     """Generate a buffer status called `name`
 
     >>> buffer('foo')
@@ -267,7 +286,8 @@ def buffer (name) :
     """
     return Buffer('buffer', name)
 
-class Safebuffer (Buffer) :
+
+class Safebuffer(Buffer):
     """A status for safe buffers (ie, variables) places. The only
     difference with `Buffer` status is that when buffer places with
     `SafeBuffer` status are merged, they must have all the same
@@ -292,8 +312,9 @@ class Safebuffer (Buffer) :
       ...
     ConstraintError: incompatible markings
     """
+
     # apidoc skip
-    def merge (self, net, nodes, name=None) :
+    def merge(self, net, nodes, name=None):
         """Merge `nodes` in `net`
 
         Safe buffers places with the status `Safebuffer('safebuffer',
@@ -312,21 +333,22 @@ class Safebuffer (Buffer) :
           be generated
         @type name: `str`
         """
-        if self._value is None :
+        if self._value is None:
             return
         marking = net.place(nodes[0]).tokens
-        for node in nodes[1:] :
-            if net.place(node).tokens != marking :
+        for node in nodes[1:]:
+            if net.place(node).tokens != marking:
                 raise ConstraintError("incompatible markings")
-        if name is None :
+        if name is None:
             name = "(%s)" % "+".join(sorted(nodes))
         net.merge_places(name, nodes, status=self)
-        for src in nodes :
+        for src in nodes:
             net.remove_place(src)
         net.set_status(name, self)
         net.place(name).reset(marking)
 
-def safebuffer (name) :
+
+def safebuffer(name):
     """Generate a safebuffer status called `name`
 
     >>> safebuffer('foo')
@@ -339,15 +361,17 @@ def safebuffer (name) :
     """
     return Safebuffer('safebuffer', name)
 
-class Tick (Status) :
+
+class Tick(Status):
     """A status for tick transition. Ticks are to transitions what
     buffers are to places: they allow automatic merging of transitions
     with the same tick status when nets are composed. This is used to
     implement variants of the Petri Box Calculus with causal time.
     When transitions are merged, their guards are `and`-ed.
     """
+
     # apidoc skip
-    def merge (self, net, nodes, name=None) :
+    def merge(self, net, nodes, name=None):
         """Merge `nodes` in `net`
 
         Tick transitions are merged exactly as
@@ -378,15 +402,16 @@ class Tick (Status) :
           should be generated
         @type name: `str`
         """
-        if self._value is None :
+        if self._value is None:
             return
-        if name is None :
+        if name is None:
             name = "(%s)" % "+".join(nodes)
         net.merge_transitions(name, nodes, status=self)
-        for src in nodes :
+        for src in nodes:
             net.remove_transition(src)
 
-def tick (name) :
+
+def tick(name):
     """Generate a tick status called `name`
 
     >>> tick('spam')
@@ -399,51 +424,58 @@ def tick (name) :
     """
     return Tick('tick', name)
 
+
 # apidoc skip
-class StatusDict (object) :
+class StatusDict(object):
     "A container to access the nodes of a net by their status"
-    def __init__ (self, net) :
+
+    def __init__(self, net):
         """
         @param net: the Petri net for which nodes will be recorded
         @type net: `PetriNet`
         """
         self._nodes = {}
         self._net = weakref.ref(net)
-    def copy (self, net=None) :
+
+    def copy(self, net=None):
         """
         @param net: the Petri net for which nodes will be recorded
           (`None` if it is the same as the copied object)
         @type net: `PetriNet`
         """
-        if net is None :
+        if net is None:
             net = self._net()
         result = self.__class__(net)
-        for status in self._nodes :
+        for status in self._nodes:
             result._nodes[status.copy()] = self._nodes[status].copy()
         return result
-    def __iter__ (self) :
+
+    def __iter__(self):
         return iter(self._nodes)
-    def record (self, node) :
+
+    def record(self, node):
         """Called when `node` is added to the net
 
         @param node: the added node
         @type node: `Node`
         """
-        if node.status not in self._nodes :
+        if node.status not in self._nodes:
             self._nodes[node.status] = set([node.name])
-        else :
+        else:
             self._nodes[node.status].add(node.name)
-    def remove (self, node) :
+
+    def remove(self, node):
         """Called when `node` is removed from the net
 
         @param node: the added node
         @type node: `Node`
         """
-        if node.status in self._nodes :
+        if node.status in self._nodes:
             self._nodes[node.status].discard(node.name)
-            if len(self._nodes[node.status]) == 0 :
+            if len(self._nodes[node.status]) == 0:
                 del self._nodes[node.status]
-    def __call__ (self, status) :
+
+    def __call__(self, status):
         """Return the nodes having `status`
 
         @param status: the searched status
@@ -452,7 +484,8 @@ class StatusDict (object) :
         @rtype: `tuple` of `str`
         """
         return tuple(self._nodes.get(status, tuple()))
-    def merge (self, status, name=None) :
+
+    def merge(self, status, name=None):
         """Merge the nodes in the net having `status`
 
         This is a shortcut to call `status.merge` with the right
@@ -460,33 +493,38 @@ class StatusDict (object) :
 
         @param status: the status for which nodes have to be merged
         """
-        if status :
+        if status:
             nodes = self(status)
-            if len(nodes) > 1 :
+            if len(nodes) > 1:
                 status.merge(self._net(), nodes, name)
 
+
 @snakes.plugins.plugin("snakes.nets")
-def extend (module) :
-    class Place (module.Place) :
+def extend(module):
+    class Place(module.Place):
         """`Place` is extended to allow `status` keyword argument in
         its constructor, which is later available as `status`
         attribute.
         """
+
         # apidoc stop
-        def __init__ (self, name, tokens=[], check=None, **args) :
+        def __init__(self, name, tokens=[], check=None, **args):
             self.status = args.pop("status", Status(None))
             module.Place.__init__(self, name, tokens, check, **args)
-        def copy (self, name=None, **args) :
+
+        def copy(self, name=None, **args):
             result = module.Place.copy(self, name, **args)
             result.status = self.status.copy()
             return result
-        def __repr__ (self) :
-            if self.status == Status(None) :
+
+        def __repr__(self):
+            if self.status == Status(None):
                 return module.Place.__repr__(self)
-            else :
+            else:
                 return "%s, status=%s)" % (module.Place.__repr__(self)[:-1],
                                            repr(self.status))
-        def __pnmldump__ (self) :
+
+        def __pnmldump__(self):
             """
             >>> p = Place('p', status=Status('foo', 42))
             >>> p.__pnmldump__()
@@ -513,29 +551,33 @@ def extend (module) :
             t = module.Place.__pnmldump__(self)
             t.add_child(Tree.from_obj(self.status))
             return t
+
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             """
             >>> t = Place('p', status=Status('foo', 42)).__pnmldump__()
             >>> Place.__pnmlload__(t).status
             Status('foo',42)
             """
             result = new_instance(cls, module.Place.__pnmlload__(tree))
-            try :
+            try:
                 result.status = tree.child("status").to_obj()
-            except SnakesError :
+            except SnakesError:
                 result.status = Status(None)
             return result
-    class Transition (module.Transition) :
+
+    class Transition(module.Transition):
         """`Transition` is extended to allow `status` keyword argument
         in its constructor, which is later available as `status`
         attribute.
         """
+
         # apidoc stop
-        def __init__ (self, name, guard=None, **args) :
+        def __init__(self, name, guard=None, **args):
             self.status = args.pop("status", Status(None)).copy()
             module.Transition.__init__(self, name, guard, **args)
-        def __pnmldump__ (self) :
+
+        def __pnmldump__(self):
             """
             >>> p = Transition('p', status=Status('foo', 42))
             >>> p.__pnmldump__()
@@ -558,30 +600,34 @@ def extend (module) :
             t = module.Transition.__pnmldump__(self)
             t.add_child(Tree.from_obj(self.status))
             return t
+
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             """
             >>> t = Transition('p', status=Status('foo', 42)).__pnmldump__()
             >>> Transition.__pnmlload__(t).status
             Status('foo',42)
             """
             result = new_instance(cls, module.Transition.__pnmlload__(tree))
-            try :
+            try:
                 result.status = tree.child("status").to_obj()
-            except SnakesError :
+            except SnakesError:
                 result.status = Status(None)
             return result
-        def copy (self, name=None, **args) :
+
+        def copy(self, name=None, **args):
             result = module.Transition.copy(self, name, **args)
             result.status = self.status.copy()
             return result
-        def __repr__ (self) :
-            if self.status == Status(None) :
+
+        def __repr__(self):
+            if self.status == Status(None):
                 return module.Transition.__repr__(self)
-            else :
-                return "%s, status=%s)" % (module.Transition.__repr__(self)[:-1],
-                                           repr(self.status))
-    class PetriNet (module.PetriNet) :
+            else:
+                return "%s, status=%s)" % (
+                    module.Transition.__repr__(self)[:-1], repr(self.status))
+
+    class PetriNet(module.PetriNet):
         """`PetriNet` is extended to allow `status` keyword argument
         in several of its methods. An attributes `status` is also
         available to allow retreiving nodes (actually their names) by
@@ -610,22 +656,26 @@ def extend (module) :
         `PetriNet.merge_places` and `PetriNet.merge_transitions` that
         preserve the merged nodes and only add the new one.
         """
+
         # apidoc skip
-        def __init__ (self, name, **args) :
+        def __init__(self, name, **args):
             module.PetriNet.__init__(self, name, **args)
             self.status = StatusDict(self)
+
         # apidoc skip
         @classmethod
-        def __pnmlload__ (cls, tree) :
+        def __pnmlload__(cls, tree):
             t = new_instance(cls, module.PetriNet.__pnmlload__(tree))
             t.status = StatusDict(t)
             return t
+
         # apidoc skip
-        def copy (self, name=None, **args) :
+        def copy(self, name=None, **args):
             result = module.PetriNet.copy(self, name, **args)
             result.status = self.status.copy(result)
             return result
-        def add_place (self, place, **args) :
+
+        def add_place(self, place, **args):
             """Extended with `status` keyword argument.
 
             @keyword status: a status that is given to the node
@@ -634,12 +684,14 @@ def extend (module) :
             place.status = args.pop("status", place.status)
             module.PetriNet.add_place(self, place, **args)
             self.status.record(place)
+
         # apidoc skip
-        def remove_place (self, name, **args) :
+        def remove_place(self, name, **args):
             place = self.place(name)
             self.status.remove(place)
             module.PetriNet.remove_place(self, name, **args)
-        def add_transition (self, trans, **args) :
+
+        def add_transition(self, trans, **args):
             """Extended with `status` keyword argument.
 
             @keyword status: a status that is given to the node
@@ -648,12 +700,14 @@ def extend (module) :
             trans.status = args.pop("status", trans.status)
             module.PetriNet.add_transition(self, trans, **args)
             self.status.record(trans)
+
         # apidoc skip
-        def remove_transition (self, name, **args) :
+        def remove_transition(self, name, **args):
             trans = self.transition(name)
             self.status.remove(trans)
             module.PetriNet.remove_transition(self, name, **args)
-        def set_status (self, node, status) :
+
+        def set_status(self, node, status):
             """Assign a new status to a node.
 
             @param node: the name of the node
@@ -665,13 +719,15 @@ def extend (module) :
             self.status.remove(node)
             node.status = status
             self.status.record(node)
+
         # apidoc skip
-        def rename_node (self, old, new, **args) :
+        def rename_node(self, old, new, **args):
             old_node = self.node(old).copy()
             module.PetriNet.rename_node(self, old, new, **args)
             self.status.remove(old_node)
             self.status.record(self.node(new))
-        def copy_place (self, source, targets, **args) :
+
+        def copy_place(self, source, targets, **args):
             """Extended with `status` keyword argument.
 
             @keyword status: a status that is given to the new node
@@ -679,9 +735,10 @@ def extend (module) :
             """
             status = args.pop("status", self.place(source).status)
             module.PetriNet.copy_place(self, source, targets, **args)
-            for new in iterate(targets) :
+            for new in iterate(targets):
                 self.set_status(new, status)
-        def copy_transition (self, source, targets, **args) :
+
+        def copy_transition(self, source, targets, **args):
             """Extended with `status` keyword argument.
 
             @keyword status: a status that is given to the new node
@@ -689,34 +746,37 @@ def extend (module) :
             """
             status = args.pop("status", self.transition(source).status)
             module.PetriNet.copy_transition(self, source, targets, **args)
-            for new in iterate(targets) :
+            for new in iterate(targets):
                 self.set_status(new, status)
-        def merge_places (self, target, sources, **args) :
+
+        def merge_places(self, target, sources, **args):
             """Extended with `status` keyword argument.
 
             @keyword status: a status that is given to the new node
             @type status: `Status`
             """
-            if "status" in args :
+            if "status" in args:
                 status = args.pop("status")
-            else :
+            else:
                 status = reduce(operator.add,
                                 (self.place(s).status for s in sources))
             module.PetriNet.merge_places(self, target, sources, **args)
             self.set_status(target, status)
-        def merge_transitions (self, target, sources, **args) :
+
+        def merge_transitions(self, target, sources, **args):
             """Extended with `status` keyword argument.
 
             @keyword status: a status that is given to the new node
             @type status: `Status`
             """
-            if "status" in args :
+            if "status" in args:
                 status = args.pop("status")
-            else :
+            else:
                 status = reduce(operator.add,
                                 (self.place(s).status for s in sources))
             module.PetriNet.merge_transitions(self, target, sources, **args)
             self.set_status(target, status)
-    return (Place, Transition, PetriNet, Status,
-            ("entry", entry), ("exit", exit), ("internal", internal),
-            Buffer, buffer, Safebuffer, safebuffer, Tick, tick)
+
+    return (Place, Transition, PetriNet, Status, ("entry", entry),
+            ("exit", exit), ("internal", internal), Buffer, buffer, Safebuffer,
+            safebuffer, Tick, tick)

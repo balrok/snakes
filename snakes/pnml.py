@@ -16,68 +16,75 @@ import sys, inspect, os, os.path, imp, pkgutil
 import snakes, snakes.plugins
 from snakes import SnakesError
 from snakes.compat import *
-if PY3 :
+if PY3:
     import ast
 
-try :
+try:
     builtins = sys.modules["__builtin__"]
-except KeyError :
+except KeyError:
     builtins = sys.modules["builtins"]
 
-def _snk_import (name) :
+
+def _snk_import(name):
     "Properly import a module, including a plugin"
-    if name.startswith("snakes.plugins.") :
+    if name.startswith("snakes.plugins."):
         return snakes.plugins.load(name, "snakes.nets")
-    else :
+    else:
         return __import__(name, fromlist=["__name__"])
 
-def _snk_modules () :
+
+def _snk_modules():
     "List all SNAKES' modules"
     queue = ["snakes"]
-    while len(queue) > 0 :
+    while len(queue) > 0:
         modname = queue.pop(0)
-        try :
+        try:
             mod = _snk_import(modname)
-        except :
+        except:
             continue
         yield modname, mod
         importer = pkgutil.ImpImporter(mod.__path__[0])
-        for name, ispkg in importer.iter_modules(prefix=mod.__name__ + ".") :
-            if ispkg :
+        for name, ispkg in importer.iter_modules(prefix=mod.__name__ + "."):
+            if ispkg:
                 queue.append(name)
-            else :
-                try :
+            else:
+                try:
                     yield name, _snk_import(name)
-                except :
+                except:
                     pass
 
-def _snk_tags () :
+
+def _snk_tags():
     "Lists all PNML tags found in SNAKES"
-    for modname, mod in _snk_modules() :
-        for clsname, cls in inspect.getmembers(mod, inspect.isclass) :
-            if cls.__module__ == modname and "__pnmltag__" in cls.__dict__ :
+    for modname, mod in _snk_modules():
+        for clsname, cls in inspect.getmembers(mod, inspect.isclass):
+            if cls.__module__ == modname and "__pnmltag__" in cls.__dict__:
                 yield cls.__pnmltag__, modname, clsname
 
-class _set (object) :
+
+class _set(object):
     """Set where items are iterated by order of insertion
     """
-    def __init__ (self, elements=[]) :
+
+    def __init__(self, elements=[]):
         """
         >>> _set([4, 5, 1, 2, 4])
         _set([4, 5, 1, 2])
         """
         self._data = {}
         self._last = 0
-        for e in elements :
+        for e in elements:
             self.add(e)
-    def __repr__ (self) :
+
+    def __repr__(self):
         """
         >>> _set([4, 5, 1, 2, 4])
         _set([4, 5, 1, 2])
         """
-        return "%s([%s])" % (self.__class__.__name__,
-                             ", ".join(repr(x) for x in self))
-    def add (self, element) :
+        return "%s([%s])" % (self.__class__.__name__, ", ".join(
+            repr(x) for x in self))
+
+    def add(self, element):
         """
         >>> s = _set([4, 5, 1, 2, 4])
         >>> s.add(0)
@@ -87,10 +94,11 @@ class _set (object) :
         >>> s
         _set([4, 5, 1, 2, 0])
         """
-        if element not in self._data :
+        if element not in self._data:
             self._data[element] = self._last
             self._last += 1
-    def __contains__ (self, element) :
+
+    def __contains__(self, element):
         """
         >>> 4 in _set([4, 5, 1, 2, 4])
         True
@@ -98,19 +106,22 @@ class _set (object) :
         False
         """
         return element in self._data
-    def _2nd (self, pair) :
+
+    def _2nd(self, pair):
         """
         >>> _set()._2nd((1, 2))
         2
         """
         return pair[1]
-    def __iter__ (self) :
+
+    def __iter__(self):
         """
         >>> list(_set([4, 5, 1, 2, 4]))
         [4, 5, 1, 2]
         """
         return (k for k, v in sorted(self._data.items(), key=self._2nd))
-    def discard (self, element) :
+
+    def discard(self, element):
         """
         >>> s = _set([4, 5, 1, 2, 4])
         >>> s.discard(0)
@@ -118,9 +129,10 @@ class _set (object) :
         >>> s
         _set([5, 1, 2])
         """
-        if element in self._data :
+        if element in self._data:
             del self._data[element]
-    def remove (self, element) :
+
+    def remove(self, element):
         """
         >>> s = _set([4, 5, 1, 2, 4])
         >>> s.remove(0)
@@ -132,23 +144,26 @@ class _set (object) :
         _set([5, 1, 2])
         """
         del self._data[element]
-    def copy (self) :
+
+    def copy(self):
         """
         >>> _set([4, 5, 1, 2, 4]).copy()
         _set([4, 5, 1, 2])
         """
         return self.__class__(self)
-    def __iadd__ (self, other) :
+
+    def __iadd__(self, other):
         """
         >>> s = _set([4, 5, 1, 2, 4])
         >>> s += range(7)
         >>> s
         _set([4, 5, 1, 2, 0, 3, 6])
         """
-        for element in other :
+        for element in other:
             self.add(element)
         return self
-    def __add__ (self, other) :
+
+    def __add__(self, other):
         """
         >>> _set([4, 5, 1, 2, 4]) + range(7)
         _set([4, 5, 1, 2, 0, 3, 6])
@@ -156,15 +171,17 @@ class _set (object) :
         result = self.copy()
         result += other
         return result
-    def __len__ (self) :
+
+    def __len__(self):
         """
         >>> len(_set([4, 5, 1, 2, 4]))
         4
         """
         return len(self._data)
 
+
 # apidoc skip
-class Tree (object) :
+class Tree(object):
     """Abstraction of a PNML tree
 
     >>> Tree('tag', 'data', Tree('child', None), attr='attribute value')
@@ -176,7 +193,8 @@ class Tree (object) :
      </tag>
     </pnml>
     """
-    def __init__ (self, _name, _data, *_children, **_attributes) :
+
+    def __init__(self, _name, _data, *_children, **_attributes):
         """Initialize a PNML tree
 
         >>> Tree('tag', 'data',
@@ -206,30 +224,34 @@ class Tree (object) :
         @type _attributes: `str`
         """
         self.name = _name
-        if _data is not None and _data.strip() == "" :
+        if _data is not None and _data.strip() == "":
             _data = None
         self.data = _data
         self.children = list(_children)
         self.attributes = _attributes
+
     @classmethod
-    def _load_tags (_class) :
-        if not hasattr(_class, "_tags") :
+    def _load_tags(_class):
+        if not hasattr(_class, "_tags"):
             _class._tags = {}
-            for tag, mod, cls in _snk_tags() :
-                if tag not in _class._tags :
+            for tag, mod, cls in _snk_tags():
+                if tag not in _class._tags:
                     _class._tags[tag] = (mod, cls)
-    def _update_node (self, doc, node) :
-        for key, val in self.attributes.items() :
+
+    def _update_node(self, doc, node):
+        for key, val in self.attributes.items():
             node.setAttribute(key, val)
-        for child in self.children :
+        for child in self.children:
             node.appendChild(child._to_dom(doc))
-        if self.data is not None :
+        if self.data is not None:
             node.appendChild(doc.createTextNode(self.data))
-    def _to_dom (self, doc) :
+
+    def _to_dom(self, doc):
         result = doc.createElement(self.name)
         self._update_node(doc, result)
         return result
-    def to_pnml (self) :
+
+    def to_pnml(self):
         """Dumps a PNML tree to an XML string
 
         >>> print(Tree('tag', 'data', Tree('child', None), attr='value').to_pnml())
@@ -244,36 +266,40 @@ class Tree (object) :
         @return: the XML string that represents the PNML tree
         @rtype: `str`
         """
-        if self.name == "pnml" :
+        if self.name == "pnml":
             tree = self
-        else :
+        else:
             tree = self.__class__("pnml", None, self)
-        try :
+        try:
             plugins = _set(self.__plugins__)
-        except AttributeError :
+        except AttributeError:
             plugins = _set()
-        for node in self.nodes() :
-            if hasattr(node, "_plugins") :
+        for node in self.nodes():
+            if hasattr(node, "_plugins"):
                 plugins += node._plugins
-        if len(plugins) > 0 :
-            tree.children.insert(0, Tree("snakes", None,
-                                         Tree("plugins", None,
-                                              Tree.from_obj(tuple(plugins))),
-                                         version=snakes.version))
+        if len(plugins) > 0:
+            tree.children.insert(
+                0,
+                Tree(
+                    "snakes",
+                    None,
+                    Tree("plugins", None, Tree.from_obj(tuple(plugins))),
+                    version=snakes.version))
         impl = xml.dom.minidom.getDOMImplementation()
         doc = impl.createDocument(None, "pnml", None)
         node = tree._to_dom(doc)
         tree._update_node(doc, doc.documentElement)
-        if len(plugins) > 0 :
+        if len(plugins) > 0:
             del tree.children[0]
-        r = doc.toprettyxml(indent=" ",
-                            encoding=snakes.defaultencoding).strip()
-        if PY3 :
+        r = doc.toprettyxml(
+            indent=" ", encoding=snakes.defaultencoding).strip()
+        if PY3:
             return r.decode()
-        else :
+        else:
             return r
+
     @classmethod
-    def from_dom (cls, node) :
+    def from_dom(cls, node):
         """Load a PNML tree from an XML DOM representation
 
         >>> src = Tree('object', '42', type='int').to_pnml()
@@ -292,18 +318,19 @@ class Tree (object) :
         @rtype: `Tree`
         """
         result = cls(node.tagName, node.nodeValue)
-        for i in range(node.attributes.length) :
+        for i in range(node.attributes.length):
             name = node.attributes.item(i).localName
             result[name] = str(node.getAttribute(name))
-        if node.hasChildNodes() :
-            for child in node.childNodes :
-                if child.nodeType == child.TEXT_NODE :
+        if node.hasChildNodes():
+            for child in node.childNodes:
+                if child.nodeType == child.TEXT_NODE:
                     result.add_data(str(child.data))
-                elif child.nodeType == child.ELEMENT_NODE :
+                elif child.nodeType == child.ELEMENT_NODE:
                     result.add_child(cls.from_dom(child))
         return result
+
     @classmethod
-    def from_pnml (cls, source, plugins=[]) :
+    def from_pnml(cls, source, plugins=[]):
         """Load a PNML tree from an XML string representation
 
         >>> src = Tree('object', '42', type='int').to_pnml()
@@ -321,36 +348,36 @@ class Tree (object) :
         @return: the loaded PNML tree
         @rtype: `Tree`
         """
-        try :
+        try:
             doc = xml.dom.minidom.parse(source)
-        except :
+        except:
             doc = xml.dom.minidom.parseString(source)
         result = cls.from_dom(doc.documentElement)
         plugins = _set(plugins)
         cls._load_tags()
         tag2obj = {}
         trash = []
-        for node in result.nodes() :
+        for node in result.nodes():
             node._tag2obj = tag2obj
-            if node.has_child("snakes") :
+            if node.has_child("snakes"):
                 snk = node.child("snakes")
                 trash.append((node, snk))
                 plugins += snk.child("plugins").child("object").to_obj()
-            if node.name in cls._tags :
+            if node.name in cls._tags:
                 modname, clsname = cls._tags[node.name]
-                if modname.startswith("snakes.plugins.") :
+                if modname.startswith("snakes.plugins."):
                     plugins.add(modname)
-                elif node.name not in tag2obj :
+                elif node.name not in tag2obj:
                     tag2obj[node.name] = getattr(_snk_import(modname), clsname)
-        for parent, child in trash :
+        for parent, child in trash:
             parent.children.remove(child)
         plugins.discard("snakes.nets")
         nets = snakes.plugins.load(plugins, "snakes.nets")
-        for name, obj in inspect.getmembers(nets, inspect.isclass) :
+        for name, obj in inspect.getmembers(nets, inspect.isclass):
             # Skip classes that cannot be serialised to PNML
-            try :
+            try:
                 tag = obj.__pnmltag__
-            except AttributeError :
+            except AttributeError:
                 continue
             # Get the last class in the hierarchy that has the same
             # "__pnmltag__" and is in the same module. This is useful
@@ -358,13 +385,15 @@ class Tree (object) :
             # the former should be called used of the laters because
             # it dispatches the call to "__pnmlload__" according to
             # "__pnmltype__".
-            bases = [obj] + [c for c in inspect.getmro(obj)
-                             if (c.__module__ == obj.__module__)
-                             and hasattr(c, "__pnmltag__")
-                             and c.__pnmltag__ == tag]
+            bases = [obj] + [
+                c for c in inspect.getmro(obj)
+                if (c.__module__ == obj.__module__)
+                and hasattr(c, "__pnmltag__") and c.__pnmltag__ == tag
+            ]
             tag2obj[tag] = bases[-1]
         return result
-    def nodes (self) :
+
+    def nodes(self):
         """Iterate over all the nodes (top-down) in a tree
 
         >>> t = Tree('foo', None,
@@ -383,10 +412,11 @@ class Tree (object) :
         @rtype: `generator`
         """
         yield self
-        for child in self.children :
-            for node in child.nodes() :
+        for child in self.children:
+            for node in child.nodes():
                 yield node
-    def update (self, other) :
+
+    def update(self, other):
         """Incorporates children, attributes and data from another PNML
         tree
 
@@ -423,12 +453,14 @@ class Tree (object) :
         @raise SnakesError: when `other` has not the same tag as
             `self`
         """
-        if self.name != other.name :
-            raise SnakesError("tag mismatch '%s', '%s'" % (self.name, other.name))
+        if self.name != other.name:
+            raise SnakesError(
+                "tag mismatch '%s', '%s'" % (self.name, other.name))
         self.children.extend(other.children)
         self.attributes.update(other.attributes)
         self.add_data(other.data)
-    def add_child (self, child) :
+
+    def add_child(self, child):
         """Add a child to a PNML tree
 
         >>> t = Tree('foo', None)
@@ -445,7 +477,8 @@ class Tree (object) :
         @type child: `Tree`
         """
         self.children.append(child)
-    def add_data (self, data, sep='\n') :
+
+    def add_data(self, data, sep='\n'):
         """Appends data to the current node
 
         >>> t = Tree('foo', None)
@@ -481,16 +514,17 @@ class Tree (object) :
         @param sep: separator to insert between pieces of data
         @type sep: `str`
         """
-        try :
+        try:
             data = data.strip()
-            if data != "" :
-                if self.data is None :
+            if data != "":
+                if self.data is None:
                     self.data = data
-                else :
+                else:
                     self.data += sep + data
-        except :
+        except:
             pass
-    def __getitem__ (self, name) :
+
+    def __getitem__(self, name):
         """Returns one attribute
 
         >>> Tree('foo', None, x='egg', y='spam')['x']
@@ -507,7 +541,8 @@ class Tree (object) :
         @raise KeyError: if no such attribute is found
         """
         return self.attributes[name]
-    def __setitem__ (self, name, value) :
+
+    def __setitem__(self, name, value):
         """Sets an attribute
 
         >>> t = Tree('foo', None)
@@ -524,7 +559,8 @@ class Tree (object) :
         @type value: `str`
         """
         self.attributes[name] = value
-    def __iter__ (self) :
+
+    def __iter__(self):
         """Iterate over children nodes
 
         >>> [str(node) for node in Tree('foo', None,
@@ -537,7 +573,8 @@ class Tree (object) :
         @rtype: `generator`
         """
         return iter(self.children)
-    def has_child (self, name) :
+
+    def has_child(self, name):
         """Test if the tree has the given tag as a direct child
 
         >>> t = Tree('foo', None,
@@ -557,11 +594,12 @@ class Tree (object) :
             found or not
         @rtype: `bool`
         """
-        for child in self :
-            if child.name == name :
+        for child in self:
+            if child.name == name:
                 return True
         return False
-    def child (self, name=None) :
+
+    def child(self, name=None):
         """Return the direct child that as the given tag
 
         >>> t = Tree('foo', None,
@@ -599,18 +637,19 @@ class Tree (object) :
             be returned
         """
         result = None
-        for child in self :
-            if name is None or child.name == name :
-                if result is None :
+        for child in self:
+            if name is None or child.name == name:
+                if result is None:
                     result = child
-                elif name is None :
+                elif name is None:
                     raise SnakesError("multiple children")
-                else :
+                else:
                     raise SnakesError("multiple children '%s'" % name)
-        if result is None :
+        if result is None:
             raise SnakesError("no child '%s'" % name)
         return result
-    def get_children (self, name=None) :
+
+    def get_children(self, name=None):
         """Iterates over direct children having the given tag
 
         >>> t = Tree('foo', None,
@@ -633,10 +672,11 @@ class Tree (object) :
             or over the children with tag `name` otherwise
         @rtype: `generator`
         """
-        for child in self :
-            if name is None or child.name == name :
+        for child in self:
+            if name is None or child.name == name:
                 yield child
-    def __str__ (self) :
+
+    def __str__(self):
         """Return a simple string representation of the node
 
         >>> str(Tree('foo', None, Tree('child', None)))
@@ -646,7 +686,8 @@ class Tree (object) :
         @rtype: `str`
         """
         return "<PNML tree %r>" % self.name
-    def __repr__ (self) :
+
+    def __repr__(self):
         """Return a detailed representation of the node.
 
         This is actually the XML text that corresponds to the `Tree`,
@@ -664,10 +705,12 @@ class Tree (object) :
         @rtype: `str`
         """
         return self.to_pnml()
+
     _elementary = set(("str", "int", "float", "bool"))
     _collection = set(("list", "tuple", "set"))
+
     @classmethod
-    def from_obj (cls, obj) :
+    def from_obj(cls, obj):
         """Builds a PNML tree from an object.
 
         Objects defined in SNAKES usually have a method `__pnmldump__`
@@ -727,138 +770,159 @@ class Tree (object) :
         @return: the corresponding PNML tree
         @rtype: `Tree`
         """
-        try :
+        try:
             result = obj.__pnmldump__()
-            result._tag2obj = {result.name : obj}
-            if hasattr(obj, "__plugins__") :
+            result._tag2obj = {result.name: obj}
+            if hasattr(obj, "__plugins__"):
                 result._plugins = obj.__plugins__
             return result
-        except AttributeError :
+        except AttributeError:
             pass
         result = Tree("object", None)
         _type = type(obj)
         _name = _type.__name__
-        if _name in cls._elementary :
+        if _name in cls._elementary:
             handler = result._set_elementary
-        elif _name in cls._collection :
+        elif _name in cls._collection:
             handler = result._set_collection
-        elif inspect.ismethod(obj) :
+        elif inspect.ismethod(obj):
             handler = result._set_method
             _name = "method"
-        elif inspect.isclass(obj) :
+        elif inspect.isclass(obj):
             handler = result._set_class
             _name = "class"
-        elif inspect.isroutine(obj) :
+        elif inspect.isroutine(obj):
             handler = result._set_function
             _name = "function"
-        elif inspect.ismodule(obj) :
+        elif inspect.ismodule(obj):
             handler = result._set_module
             _name = "module"
-        else :
-            try :
+        else:
+            try:
                 handler = getattr(result, "_set_" + _name)
-            except AttributeError :
+            except AttributeError:
                 handler = result._set_pickle
                 _name = "pickle"
         result["type"] = _name
         handler(obj)
         return result
-    def _set_NoneType (self, value) :
+
+    def _set_NoneType(self, value):
         pass
-    def _get_NoneType (self) :
+
+    def _get_NoneType(self):
         pass
-    def _set_elementary (self, value) :
+
+    def _set_elementary(self, value):
         self.data = str(value)
-    def _get_elementary (self) :
-        if self["type"] == "bool" :
+
+    def _get_elementary(self):
+        if self["type"] == "bool":
             return self.data.strip() == "True"
         return getattr(builtins, self["type"])(self.data)
-    def _set_collection (self, value) :
-        for v in value :
+
+    def _set_collection(self, value):
+        for v in value:
             self.add_child(self.from_obj(v))
-    def _get_collection (self) :
-        return getattr(builtins, self["type"])(child.to_obj()
-                                               for child in self)
-    def _set_dict (self, value) :
-        for k, v in value.items() :
-            self.add_child(Tree("item", None,
-                                Tree("key", None, self.from_obj(k)),
-                                Tree("value", None, self.from_obj(v))))
-    def _get_dict (self) :
+
+    def _get_collection(self):
+        return getattr(builtins,
+                       self["type"])(child.to_obj() for child in self)
+
+    def _set_dict(self, value):
+        for k, v in value.items():
+            self.add_child(
+                Tree("item", None, Tree("key", None, self.from_obj(k)),
+                     Tree("value", None, self.from_obj(v))))
+
+    def _get_dict(self):
         return dict((child.child("key").child("object").to_obj(),
                      child.child("value").child("object").to_obj())
                     for child in self)
-    def _native (self, obj) :
-        try :
+
+    def _native(self, obj):
+        try:
             if (obj.__module__ in ("__builtin__", "__builtins__", "builtins")
-                or obj.__module__ == "snakes"
-                or obj.__module__.startswith("snakes")
-                or inspect.isbuiltin(obj)) :
+                    or obj.__module__ == "snakes"
+                    or obj.__module__.startswith("snakes")
+                    or inspect.isbuiltin(obj)):
                 return True
-        except :
+        except:
             pass
-        try :
+        try:
             lib = os.path.dirname(inspect.getfile(inspect.getfile))
-            if os.path.isfile(lib) :
+            if os.path.isfile(lib):
                 lib = os.path.dirname(lib)
             lib += os.sep
-            try :
+            try:
                 path = inspect.getfile(obj)
-            except :
+            except:
                 path = inspect.getmodule(obj).__file__
             return path.startswith(lib)
-        except :
+        except:
             return False
-    def _name (self, obj) :
-        try :
+
+    def _name(self, obj):
+        try:
             name = obj.__module__
-        except :
+        except:
             name = inspect.getmodule(obj).__name__
-        if name in ("__builtin__", "__builtins__", "builtins") :
+        if name in ("__builtin__", "__builtins__", "builtins"):
             return obj.__name__
-        else :
+        else:
             return name + "." + obj.__name__
-    def _set_class (self, value) :
-        if self._native(value) :
+
+    def _set_class(self, value):
+        if self._native(value):
             self["name"] = self._name(value)
-        else :
+        else:
             self._set_pickle(value)
-    def _get_class (self) :
-        if self.data :
+
+    def _get_class(self):
+        if self.data:
             return self._get_pickle()
-        elif "." in self["name"] :
+        elif "." in self["name"]:
             module, name = self["name"].rsplit(".", 1)
             return getattr(__import__(module, fromlist=[name]), name)
-        else :
+        else:
             return getattr(builtins, self["name"])
-    def _set_function (self, value) :
+
+    def _set_function(self, value):
         self._set_class(value)
-    def _get_function (self) :
+
+    def _get_function(self):
         return self._get_class()
-    def _set_method (self, value) :
+
+    def _set_method(self, value):
         self._set_function(value)
         self["name"] = "%s.%s" % (self["name"], value.__name__)
-    def _get_method (self) :
-        if self.data :
+
+    def _get_method(self):
+        if self.data:
             return self._get_pickle()
         module, cls, name = self["name"].rsplit(".", 2)
         cls = getattr(__import__(module, fromlist=[name]), name)
         return getattr(cls, name)
-    def _set_module (self, value) :
+
+    def _set_module(self, value):
         self["name"] = value.__name__
-    def _get_module (self) :
+
+    def _get_module(self):
         return __import__(self["name"], fromlist=["__name__"])
-    def _set_pickle (self, value) :
+
+    def _set_pickle(self, value):
         self["type"] = "pickle"
         self.data = pickle.dumps(value)
-        if PY3 :
+        if PY3:
             self.data = repr(self.data)
-    def _get_pickle (self) :
-        if PY3 :
+
+    def _get_pickle(self):
+        if PY3:
             return pickle.loads(ast.literal_eval(self.data))
-        else :
+        else:
             return pickle.loads(self.data)
-    def to_obj (self) :
+
+    def to_obj(self):
         """Build an object from its PNML representation
 
         This is just the reverse as `Tree.from_obj`, objects that have
@@ -887,34 +951,35 @@ class Tree (object) :
         @return: the Python object encoded by the PNML tree
         @rtype: `object`
         """
-        if self.name == "pnml" :
-            if len(self.children) == 0 :
+        if self.name == "pnml":
+            if len(self.children) == 0:
                 raise SnakesError("empty PNML content")
-            elif len(self.children) == 1 :
+            elif len(self.children) == 1:
                 return self.child().to_obj()
-            else :
+            else:
                 return tuple(child.to_obj() for child in self.children
                              if child.name != "snakes")
-        elif self.name == "object" :
-            if self["type"] in self._elementary :
+        elif self.name == "object":
+            if self["type"] in self._elementary:
                 handler = self._get_elementary
-            elif self["type"] in self._collection :
+            elif self["type"] in self._collection:
                 handler = self._get_collection
-            else :
-                try :
+            else:
+                try:
                     handler = getattr(self, "_get_" + self["type"])
-                except AttributeError :
+                except AttributeError:
                     handler = self._get_pickle
             return handler()
-        elif self.name != "snakes" :
-            try :
-                if self.name in self._tag2obj :
+        elif self.name != "snakes":
+            try:
+                if self.name in self._tag2obj:
                     return self._tag2obj[self.name].__pnmlload__(self)
-            except AttributeError :
+            except AttributeError:
                 pass
         raise SnakesError("unsupported PNML tag '%s'" % self.name)
 
-def dumps (obj) :
+
+def dumps(obj):
     """Dump an object to a PNML string, any Python object may be
     serialised this way (resorting to pickling when the object does
     not support serialisation to PNML).
@@ -934,7 +999,8 @@ def dumps (obj) :
     """
     return Tree.from_obj(obj).to_pnml()
 
-def loads (source, plugins=[]) :
+
+def loads(source, plugins=[]):
     """Load an object from a PNML string
 
     >>> loads(dumps(42))

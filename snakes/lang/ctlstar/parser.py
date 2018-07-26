@@ -4,10 +4,9 @@
 
 import operator, sys
 import snakes
-from snakes.lang.python.parser import (ParseTree, ParseTestParser,
-                                       Translator as PyTranslator,
-                                       ParseTree as PyParseTree,
-                                       testparser)
+from snakes.lang.python.parser import (ParseTree, ParseTestParser, Translator
+                                       as PyTranslator, ParseTree as
+                                       PyParseTree, testparser)
 from snakes.lang.pgen import ParseError
 from snakes.lang.ctlstar.pgen import parser
 import snakes.lang.ctlstar.asdl as ast
@@ -17,24 +16,29 @@ _symbols = parser.tokenizer.tok_name.copy()
 # (this is desired)
 _symbols.update(parser.symbolMap)
 
-def skip (token) :
-    if token.kind == token.lexer.COMMENT :
+
+def skip(token):
+    if token.kind == token.lexer.COMMENT:
         words = token.strip().split()
-        if words[:2] == ["#", "coding="] :
+        if words[:2] == ["#", "coding="]:
             snakes.defaultencoding = words[2]
-        elif words[:3] == ["#", "-*-", "coding:"] :
+        elif words[:3] == ["#", "-*-", "coding:"]:
             snakes.defaultencoding = words[3]
+
 
 parser.tokenizer.skip_token = skip
 
-class ParseTree (PyParseTree) :
+
+class ParseTree(PyParseTree):
     _symbols = _symbols
 
-class Translator (PyTranslator) :
+
+class Translator(PyTranslator):
     ParseTree = ParseTree
     parser = parser
     ST = ast
-    def do_file_input (self, st, ctx) :
+
+    def do_file_input(self, st, ctx):
         """file_input: (NEWLINE | ctl_atomdef | ctl_propdef)* [ ctl_formula ] NEWLINE* ENDMARKER
         -> ast.Spec
 
@@ -44,20 +48,25 @@ class Translator (PyTranslator) :
         "Spec(atoms=[Atom(name='foo', args=[], params=[], body=[Return(value=Name(id='True', ctx=Load()))])], properties=[Property(name='bar', args=[], params=[], body=Boolean(val=True))], main=InPlace(data=[Name(id='x', ctx=Load())], place=Place(name=None, place='my place')))"
         """
         atoms, props, main = [], [], None
-        for i, child in enumerate(st) :
-            if child.symbol == "ctl_atomdef" :
+        for i, child in enumerate(st):
+            if child.symbol == "ctl_atomdef":
                 atoms.append(self.do(child, ctx))
-            elif child.symbol == "ctl_propdef" :
+            elif child.symbol == "ctl_propdef":
                 props.append(self.do(child, ctx))
-            elif child.symbol == "ctl_formula" :
+            elif child.symbol == "ctl_formula":
                 main = self.do(child, ctx)
-            elif child.symbol in ("NEWLINE", "ENDMARKER") :
+            elif child.symbol in ("NEWLINE", "ENDMARKER"):
                 pass
-            else :
+            else:
                 raise ParseError(child.text, reason="unexpected token")
-        return self.ST.Spec(lineno=st.srow, col_offset=st.scol,
-                            atoms=atoms, properties=props, main=main)
-    def do_ctl_atomdef (self, st, ctx) :
+        return self.ST.Spec(
+            lineno=st.srow,
+            col_offset=st.scol,
+            atoms=atoms,
+            properties=props,
+            main=main)
+
+    def do_ctl_atomdef(self, st, ctx):
         """ctl_atomdef: 'atom' NAME '(' [ctl_parameters] ')' ':' suite
         -> ast.Atom
 
@@ -70,20 +79,25 @@ class Translator (PyTranslator) :
         ...     return x in p and x in q
         "Spec(atoms=[Atom(name='egg', args=[Place(name='p', place='my place')], params=[Parameter(name='x', type='int'), Parameter(name='q', type='place')], body=[Return(value=BoolOp(op=And(), values=[Compare(left=Name(id='x', ctx=Load()), ops=[In()], comparators=[Name(id='p', ctx=Load())]), Compare(left=Name(id='x', ctx=Load()), ops=[In()], comparators=[Name(id='q', ctx=Load())])]))])], properties=[], main=None)"
         """
-        if len(st) == 7 :
+        if len(st) == 7:
             args, params = self.do(st[3], ctx)
-            return self.ST.Atom(lineno=st.srow, col_offset=st.scol,
-                                name=st[1].text,
-                                args=args,
-                                params=params,
-                                body=self.do(st[-1], ctx))
-        else :
-            return self.ST.Atom(lineno=st.srow, col_offset=st.scol,
-                                name=st[1].text,
-                                args=[],
-                                params=[],
-                                body=self.do(st[-1], ctx))
-    def do_ctl_propdef (self, st, ctx) :
+            return self.ST.Atom(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=st[1].text,
+                args=args,
+                params=params,
+                body=self.do(st[-1], ctx))
+        else:
+            return self.ST.Atom(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=st[1].text,
+                args=[],
+                params=[],
+                body=self.do(st[-1], ctx))
+
+    def do_ctl_propdef(self, st, ctx):
         """ctl_propdef: 'prop' NAME '(' [ctl_parameters] ')' ':' ctl_suite
         -> ast.Property
 
@@ -94,20 +108,25 @@ class Translator (PyTranslator) :
         <<< prop egg (p = @'my place', x : int, q : place) : True
         "Spec(atoms=[], properties=[Property(name='egg', args=[Place(name='p', place='my place')], params=[Parameter(name='x', type='int'), Parameter(name='q', type='place')], body=Boolean(val=True))], main=None)"
         """
-        if len(st) == 7 :
+        if len(st) == 7:
             args, params = self.do(st[3], ctx)
-            return self.ST.Property(lineno=st.srow, col_offset=st.scol,
-                                    name=st[1].text,
-                                    args=args,
-                                    params=params,
-                                    body=self.do(st[-1], ctx))
-        else :
-            return self.ST.Property(lineno=st.srow, col_offset=st.scol,
-                                    name=st[1].text,
-                                    args=[],
-                                    params=[],
-                                    body=self.do(st[-1], ctx))
-    def do_ctl_suite (self, st, ctx) :
+            return self.ST.Property(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=st[1].text,
+                args=args,
+                params=params,
+                body=self.do(st[-1], ctx))
+        else:
+            return self.ST.Property(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=st[1].text,
+                args=[],
+                params=[],
+                body=self.do(st[-1], ctx))
+
+    def do_ctl_suite(self, st, ctx):
         """ctl_suite: ( ctl_formula NEWLINE | NEWLINE INDENT ctl_formula DEDENT )
         -> ast.form
 
@@ -117,11 +136,12 @@ class Translator (PyTranslator) :
         ...    True
         "Spec(atoms=[], properties=[Property(name='bar', args=[], params=[], body=Boolean(val=True))], main=None)"
         """
-        if len(st) == 2 :
+        if len(st) == 2:
             return self.do(st[0], ctx)
-        else :
+        else:
             return self.do(st[2], ctx)
-    def do_ctl_parameters (self, st, ctx) :
+
+    def do_ctl_parameters(self, st, ctx):
         """ctl_parameters: (ctl_param ',')* ctl_param
         -> [ast.ctlarg], [ast.ctlparam]
 
@@ -138,18 +158,19 @@ class Translator (PyTranslator) :
         """
         args, params = [], []
         seen = set()
-        for child in st[::2] :
+        for child in st[::2]:
             node = self.do(child, ctx)
-            if node.name in seen :
-                raise ParseError(child, reason="duplicate parameter %r"
-                                 % node.name)
+            if node.name in seen:
+                raise ParseError(
+                    child, reason="duplicate parameter %r" % node.name)
             seen.add(node.name)
-            if isinstance(node, self.ST.Place) :
+            if isinstance(node, self.ST.Place):
                 args.append(node)
-            else :
+            else:
                 params.append(node)
         return args, params
-    def do_ctl_param (self, st, ctx) :
+
+    def do_ctl_param(self, st, ctx):
         """ctl_param: NAME ( '=' '@' STRING+ | ':' NAME )
         -> ast.ctlarg|ast.ctlparam
 
@@ -160,16 +181,20 @@ class Translator (PyTranslator) :
         <<< prop egg (p = @'my place') : True
         "Spec(atoms=[], properties=[Property(name='egg', args=[Place(name='p', place='my place')], params=[], body=Boolean(val=True))], main=None)"
         """
-        if st[1].text == "=" :
-            return self.ST.Place(lineno=st.srow, col_offset=st.scol,
-                                 name=st[0].text,
-                                 place="".join(self.ST.literal_eval(c.text)
-                                               for c in st[3:]))
-        else :
-            return self.ST.Parameter(lineno=st.srow, col_offset=st.scol,
-                                     name=st[0].text,
-                                     type=st[2].text)
-    def do_ctl_arguments (self, st, ctx) :
+        if st[1].text == "=":
+            return self.ST.Place(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=st[0].text,
+                place="".join(self.ST.literal_eval(c.text) for c in st[3:]))
+        else:
+            return self.ST.Parameter(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=st[0].text,
+                type=st[2].text)
+
+    def do_ctl_arguments(self, st, ctx):
         """ctl_arguments: (NAME '=' ctl_place_or_test ',')* NAME '=' ctl_place_or_test
         -> [(str, ast.expr)]
 
@@ -186,20 +211,24 @@ class Translator (PyTranslator) :
         <<< foo(p=@'my place')
         "Spec(atoms=[], properties=[], main=Instance(name='foo', args=[arg(arg='p', annotation=Place(name=None, place='my place'))]))"
         """
-        return [self.ST.arg(name.text, self.do(value, ctx))
-                for name, value in zip(st[::4], st[2::4])]
-    def do_ctl_place_or_test (self, st, ctx) :
+        return [
+            self.ST.arg(name.text, self.do(value, ctx))
+            for name, value in zip(st[::4], st[2::4])
+        ]
+
+    def do_ctl_place_or_test(self, st, ctx):
         """ctl_place_or_test: test | '@' STRING+
         -> ast.expr | ast.Place
 
         <<< Foo(s='string', p=@'place', q=place_also)
         "Spec(atoms=[], properties=[], main=Instance(name='Foo', args=[arg(arg='s', annotation=Str(s='string')), arg(arg='p', annotation=Place(name=None, place='place')), arg(arg='q', annotation=Name(id='place_also', ctx=Load()))]))"
         """
-        if st[0].symbol == "test" :
+        if st[0].symbol == "test":
             return self.do(st[0], ctx)
-        else :
+        else:
             return self.do_ctl_place(st, ctx)
-    def do_ctl_formula (self, st, ctx) :
+
+    def do_ctl_formula(self, st, ctx):
         """ctl_formula: ctl_or_formula [ ctl_connector ctl_or_formula ]
         -> ast.form
 
@@ -210,14 +239,17 @@ class Translator (PyTranslator) :
         <<< False <=> False
         'Spec(atoms=[], properties=[], main=CtlBinary(op=Iff(), left=Boolean(val=False), right=Boolean(val=False)))'
         """
-        if len(st) == 1 :
+        if len(st) == 1:
             return self.do(st[0], ctx)
-        else :
-            return self.ST.CtlBinary(lineno=st.srow, col_offset=st.scol,
-                                     op=self.do_ctl_connector(st[1], ctx),
-                                     left=self.do(st[0], ctx),
-                                     right=self.do(st[2], ctx))
-    def do_ctl_connector (self, st, ctx) :
+        else:
+            return self.ST.CtlBinary(
+                lineno=st.srow,
+                col_offset=st.scol,
+                op=self.do_ctl_connector(st[1], ctx),
+                left=self.do(st[0], ctx),
+                right=self.do(st[2], ctx))
+
+    def do_ctl_connector(self, st, ctx):
         """ctl_connector: ( '=' '>' | '<=' '>' )
         -> ast.ctlbinary
 
@@ -227,10 +259,9 @@ class Translator (PyTranslator) :
         'Spec(atoms=[], properties=[], main=CtlBinary(op=Iff(), left=Boolean(val=False), right=Boolean(val=False)))'
         """
         op = "".join(child.text for child in st)
-        return self._ctl_binary_op[op](lineno=st.srow,
-                                       col_offset=st.scol)
+        return self._ctl_binary_op[op](lineno=st.srow, col_offset=st.scol)
 
-    def do_ctl_or_formula (self, st, ctx) :
+    def do_ctl_or_formula(self, st, ctx):
         """ctl_or_formula: ctl_and_formula ('or' ctl_and_formula)*
         -> ast.form
 
@@ -241,24 +272,30 @@ class Translator (PyTranslator) :
         <<< True or False or False and True and False
         'Spec(atoms=[], properties=[], main=CtlBinary(op=Or(), left=CtlBinary(op=Or(), left=Boolean(val=True), right=Boolean(val=False)), right=CtlBinary(op=And(), left=CtlBinary(op=And(), left=Boolean(val=False), right=Boolean(val=True)), right=Boolean(val=False))))'
         """
-        if len(st) == 1 :
+        if len(st) == 1:
             return self.do(st[0], ctx)
-        else :
+        else:
             values = [self.do(child, ctx) for child in st[::2]]
-            ops = [self._ctl_binary_op[child.text](lineno=child.srow,
-                                                   col_offset=child.scol)
-                   for child in st[1::2]]
-            while len(values) > 1 :
+            ops = [
+                self._ctl_binary_op[child.text](
+                    lineno=child.srow, col_offset=child.scol)
+                for child in st[1::2]
+            ]
+            while len(values) > 1:
                 left = values.pop(0)
                 right = values.pop(0)
                 operator = ops.pop(0)
-                values.insert(0, self.ST.CtlBinary(lineno=st.srow,
-                                                   col_offset=st.scol,
-                                                   left=left,
-                                                   op=operator,
-                                                   right=right))
+                values.insert(
+                    0,
+                    self.ST.CtlBinary(
+                        lineno=st.srow,
+                        col_offset=st.scol,
+                        left=left,
+                        op=operator,
+                        right=right))
             return values[0]
-    def do_ctl_and_formula (self, st, ctx) :
+
+    def do_ctl_and_formula(self, st, ctx):
         """ctl_and_formula: ctl_not_formula ('and' ctl_not_formula)*
         -> ast.form
 
@@ -266,7 +303,8 @@ class Translator (PyTranslator) :
         'Spec(atoms=[], properties=[], main=CtlBinary(op=And(), left=Boolean(val=True), right=Boolean(val=False)))'
         """
         return self.do_ctl_or_formula(st, ctx)
-    def do_ctl_not_formula (self, st, ctx) :
+
+    def do_ctl_not_formula(self, st, ctx):
         """ctl_not_formula: ('not' ctl_not_formula | ctl_binary_formula)
         -> ast.form
 
@@ -277,14 +315,16 @@ class Translator (PyTranslator) :
         <<< not not True
         'Spec(atoms=[], properties=[], main=CtlUnary(op=Not(), child=CtlUnary(op=Not(), child=Boolean(val=True))))'
         """
-        if len(st) == 1 :
+        if len(st) == 1:
             return self.do(st[0], ctx)
-        else :
-            return self.ST.CtlUnary(lineno=st.srow, col_offset=st.scol,
-                                    op=self.ST.Not(lineno=st[0].srow,
-                                                   col_offset=st[0].scol),
-                                    child=self.do(st[1], ctx))
-    def do_ctl_binary_formula (self, st, ctx) :
+        else:
+            return self.ST.CtlUnary(
+                lineno=st.srow,
+                col_offset=st.scol,
+                op=self.ST.Not(lineno=st[0].srow, col_offset=st[0].scol),
+                child=self.do(st[1], ctx))
+
+    def do_ctl_binary_formula(self, st, ctx):
         """ctl_binary_formula: ctl_unary_formula [ ctl_binary_op ctl_unary_formula ]
         -> ast.form
 
@@ -295,14 +335,17 @@ class Translator (PyTranslator) :
         <<< True R False
         'Spec(atoms=[], properties=[], main=CtlBinary(op=Release(), left=Boolean(val=True), right=Boolean(val=False)))'
         """
-        if len(st) == 1 :
+        if len(st) == 1:
             return self.do(st[0], ctx)
-        else :
-            return self.ST.CtlBinary(lineno=st.srow, col_offset=st.scol,
-                                     op=self.do(st[1], ctx),
-                                     left=self.do(st[0], ctx),
-                                     right=self.do(st[2], ctx))
-    def do_ctl_unary_formula (self, st, ctx) :
+        else:
+            return self.ST.CtlBinary(
+                lineno=st.srow,
+                col_offset=st.scol,
+                op=self.do(st[1], ctx),
+                left=self.do(st[0], ctx),
+                right=self.do(st[2], ctx))
+
+    def do_ctl_unary_formula(self, st, ctx):
         """ctl_unary_formula: [ ctl_unary_op ] (ctl_atom_formula | '(' ctl_formula ')')
         -> ast.form
 
@@ -323,24 +366,32 @@ class Translator (PyTranslator) :
         <<< X (True or False)
         'Spec(atoms=[], properties=[], main=CtlUnary(op=Next(), child=CtlBinary(op=Or(), left=Boolean(val=True), right=Boolean(val=False))))'
         """
-        if len(st) == 1 :
+        if len(st) == 1:
             return self.do(st[0], ctx)
-        elif len(st) == 2 :
-            return self.ST.CtlUnary(lineno=st.srow, col_offset=st.scol,
-                                    op=self.do(st[0], ctx),
-                                    child=self.do(st[1], ctx))
-        elif len(st) == 3 :
+        elif len(st) == 2:
+            return self.ST.CtlUnary(
+                lineno=st.srow,
+                col_offset=st.scol,
+                op=self.do(st[0], ctx),
+                child=self.do(st[1], ctx))
+        elif len(st) == 3:
             return self.do(st[1], ctx)
-        else :
-            return self.ST.CtlUnary(lineno=st.srow, col_offset=st.scol,
-                                    op=self.do(st[0], ctx),
-                                    child=self.do(st[2], ctx))
-    _ctl_unary_op = {"A" : ast.All,
-                     "E" : ast.Exists,
-                     "X" : ast.Next,
-                     "F" : ast.Future,
-                     "G" : ast.Globally}
-    def do_ctl_unary_op (self, st, ctx) :
+        else:
+            return self.ST.CtlUnary(
+                lineno=st.srow,
+                col_offset=st.scol,
+                op=self.do(st[0], ctx),
+                child=self.do(st[2], ctx))
+
+    _ctl_unary_op = {
+        "A": ast.All,
+        "E": ast.Exists,
+        "X": ast.Next,
+        "F": ast.Future,
+        "G": ast.Globally
+    }
+
+    def do_ctl_unary_op(self, st, ctx):
         """ctl_unary_op: ('A' | 'G' | 'F' | 'E' | 'X')
         -> ast.ctlunary
 
@@ -355,16 +406,20 @@ class Translator (PyTranslator) :
         <<< E True
         'Spec(atoms=[], properties=[], main=CtlUnary(op=Exists(), child=Boolean(val=True)))'
         """
-        return self._ctl_unary_op[st[0].text](lineno=st.srow,
-                                              col_offset=st.scol)
-    _ctl_binary_op = {"=>"  : ast.Imply,
-                      "<=>" : ast.Iff,
-                      "and" : ast.And,
-                      "or"  : ast.Or,
-                      "U"   : ast.Until,
-                      "W"   : ast.WeakUntil,
-                      "R"   : ast.Release}
-    def do_ctl_binary_op (self, st, ctx) :
+        return self._ctl_unary_op[st[0].text](
+            lineno=st.srow, col_offset=st.scol)
+
+    _ctl_binary_op = {
+        "=>": ast.Imply,
+        "<=>": ast.Iff,
+        "and": ast.And,
+        "or": ast.Or,
+        "U": ast.Until,
+        "W": ast.WeakUntil,
+        "R": ast.Release
+    }
+
+    def do_ctl_binary_op(self, st, ctx):
         """ctl_binary_op: ('R' | 'U' | 'W')
         -> ast.ctlbinary
 
@@ -375,9 +430,10 @@ class Translator (PyTranslator) :
         <<< True W False
         'Spec(atoms=[], properties=[], main=CtlBinary(op=WeakUntil(), left=Boolean(val=True), right=Boolean(val=False)))'
         """
-        return self._ctl_binary_op[st[0].text](lineno=st[0].srow,
-                                               col_offset=st[0].scol)
-    def do_ctl_atom_formula (self, st, ctx) :
+        return self._ctl_binary_op[st[0].text](
+            lineno=st[0].srow, col_offset=st[0].scol)
+
+    def do_ctl_atom_formula(self, st, ctx):
         """ctl_atom_formula: ( 'empty' '(' ctl_place ')'
                    | 'marked' '(' ctl_place ')'
 		   | 'has' ['not'] '(' ctl_place ',' test (',' test)* ')'
@@ -422,46 +478,52 @@ class Translator (PyTranslator) :
         <<< exists distinct x, y in p (has(q, x+y, x-y))
         "Spec(atoms=[], properties=[], main=Quantifier(op=Exists(), vars=['x', 'y'], place=Parameter(name='p', type='place'), child=InPlace(data=[BinOp(left=Name(id='x', ctx=Load()), op=Add(), right=Name(id='y', ctx=Load())), BinOp(left=Name(id='x', ctx=Load()), op=Sub(), right=Name(id='y', ctx=Load()))], place=Parameter(name='q', type='place')), distinct=True))"
         """
-        if st[0].text in ("True", "False") :
-            return self.ST.Boolean(lineno=st.srow, col_offset=st.scol,
-                                   val=(st[0].text  == "True"))
-        elif st[0].text == "deadlock" :
+        if st[0].text in ("True", "False"):
+            return self.ST.Boolean(
+                lineno=st.srow, col_offset=st.scol, val=(st[0].text == "True"))
+        elif st[0].text == "deadlock":
             return self.ST.Deadlock(lineno=st.srow, col_offset=st.scol)
-        elif st[0].text in ("empty", "marked") :
-            node = (self.ST.EmptyPlace if st[0].text == "empty"
-                    else self.ST.MarkedPlace)
-            return node(lineno=st.srow, col_offset=st.scol,
-                        place=self.do(st[2], ctx))
-        elif st[0].text == "has" :
-            if st[1].text == "not" :
+        elif st[0].text in ("empty", "marked"):
+            node = (self.ST.EmptyPlace
+                    if st[0].text == "empty" else self.ST.MarkedPlace)
+            return node(
+                lineno=st.srow, col_offset=st.scol, place=self.do(st[2], ctx))
+        elif st[0].text == "has":
+            if st[1].text == "not":
                 node = self.ST.NotInPlace
                 start = 3
-            else :
+            else:
                 node = self.ST.InPlace
                 start = 2
             place = self.do(st[start], ctx)
             if (isinstance(place, self.ST.Parameter)
-                and place.type != "place") :
+                    and place.type != "place"):
                 raise ParseError(st[-4], reason="'place' parameter expected")
-            return node(lineno=st.srow, col_offset=st.scol,
-                        data=[self.do(c, ctx) for c in st[start+2::2]],
-                        place=place)
-        elif st[0].text in ("forall", "exists") :
-            op = (self.ST.All if st[0].text == "forall"
-                  else self.ST.Exists)
+            return node(
+                lineno=st.srow,
+                col_offset=st.scol,
+                data=[self.do(c, ctx) for c in st[start + 2::2]],
+                place=place)
+        elif st[0].text in ("forall", "exists"):
+            op = (self.ST.All if st[0].text == "forall" else self.ST.Exists)
             distinct = st[1].text == "distinct"
             start = 2 if distinct else 1
-            return self.ST.Quantifier(lineno=st.srow, col_offset=st.scol,
-                                      op=op(),
-                                      vars=[c.text for c in st[start:-5:2]],
-                                      place=self.do(st[-4], ctx),
-                                      child=self.do(st[-2], ctx),
-                                      distinct=distinct)
-        else :
-            return self.ST.Instance(lineno=st.srow, col_offset=st.scol,
-                                    name=st[0].text,
-                                    args=self.do(st[2], ctx))
-    def do_ctl_place (self, st, ctx) :
+            return self.ST.Quantifier(
+                lineno=st.srow,
+                col_offset=st.scol,
+                op=op(),
+                vars=[c.text for c in st[start:-5:2]],
+                place=self.do(st[-4], ctx),
+                child=self.do(st[-2], ctx),
+                distinct=distinct)
+        else:
+            return self.ST.Instance(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=st[0].text,
+                args=self.do(st[2], ctx))
+
+    def do_ctl_place(self, st, ctx):
         """ctl_place: '@' STRING+ | NAME
         -> ast.ctlarg
 
@@ -476,17 +538,21 @@ class Translator (PyTranslator) :
         <<< has not(@'my place', x, y)
         "Spec(atoms=[], properties=[], main=NotInPlace(data=[Name(id='x', ctx=Load()), Name(id='y', ctx=Load())], place=Place(name=None, place='my place')))"
         """
-        if st[0].symbol == "NAME" :
-            return self.ST.Parameter(lineno=st.srow, col_offset=st.scol,
-                                     name=st[0].text,
-                                     type="place")
-        else :
-            return self.ST.Place(lineno=st.srow, col_offset=st.scol,
-                                 name=None,
-                                 place="".join(self.ST.literal_eval(c.text)
-                                               for c in st[1:]))
+        if st[0].symbol == "NAME":
+            return self.ST.Parameter(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=st[0].text,
+                type="place")
+        else:
+            return self.ST.Place(
+                lineno=st.srow,
+                col_offset=st.scol,
+                name=None,
+                place="".join(self.ST.literal_eval(c.text) for c in st[1:]))
+
 
 parse = Translator.parse
 
-if __name__ == "__main__" :
+if __name__ == "__main__":
     testparser(Translator)

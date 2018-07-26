@@ -3,40 +3,42 @@
 
 import sys
 
-try :
+try:
     xrange
-except NameError :
+except NameError:
     xrange = range
 
-try :
+try:
     reduce
-except NameError :
+except NameError:
     from functools import reduce
 
-try :
+try:
     import StringIO as io
-except ImportError :
+except ImportError:
     import io
 
-try :
+try:
     next
-except NameError :
-    def next (obj) :
+except NameError:
+
+    def next(obj):
         return obj.next()
 
-try :
+
+try:
     unicode
-except NameError :
+except NameError:
     unicode = str
 
-try :
+try:
     reduce
-except NameError :
+except NameError:
     from functools import reduce
 
-try :
+try:
     unicode
-except NameError :
+except NameError:
     unicode = str
 
 PY3 = sys.version > "3"

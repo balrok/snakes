@@ -7,7 +7,8 @@ from snakes import DomainError
 from snakes.hashables import hdict
 from snakes.pnml import Tree
 
-def cross (sets) :
+
+def cross(sets):
     """Cross-product of some iterable collections (typically, `list`
     or `set`).
 
@@ -26,17 +27,18 @@ def cross (sets) :
     @return: an iterator over the tuples in the cross-product
     @rtype: `generator`
     """
-    if len(sets) == 0 :
+    if len(sets) == 0:
         pass
-    elif len(sets) == 1 :
-        for item in sets[0] :
-            yield (item,)
-    else :
-        for item in sets[0] :
-            for others in cross(sets[1:]) :
-                yield (item,) + others
+    elif len(sets) == 1:
+        for item in sets[0]:
+            yield (item, )
+    else:
+        for item in sets[0]:
+            for others in cross(sets[1:]):
+                yield (item, ) + others
 
-def iterate (value) :
+
+def iterate(value):
     """Like Python's builtin `iter` but consider strings as atomic.
 
     >>> list(iter([1, 2, 3]))
@@ -54,19 +56,24 @@ def iterate (value) :
         and is not string, an iterator on the sole `value` otherwise
     @rtype: `generator`
     """
-    if isinstance(value, str) :
+    if isinstance(value, str):
         return iter([value])
-    else :
-        try :
+    else:
+        try:
             return iter(value)
-        except TypeError :
+        except TypeError:
             return iter([value])
 
-class WordSet (set) :
+
+class WordSet(set):
     """A set of words being able to generate fresh words.
     """
-    def fresh (self, add=False, min=1, base="",
-               allowed="abcdefghijklmnopqrstuvwxyz") :
+
+    def fresh(self,
+              add=False,
+              min=1,
+              base="",
+              allowed="abcdefghijklmnopqrstuvwxyz"):
         """Create a fresh word (ie, which is not in the set).
 
         >>> w = WordSet(['foo', 'bar'])
@@ -90,39 +97,41 @@ class WordSet (set) :
         @param base: prefix of generated words
         @type base: `str`
         """
-        if base :
+        if base:
             result = [base] + [allowed[0]] * max(0, min - len(base))
-            if base in self :
+            if base in self:
                 result.append(allowed[0])
                 pos = len(result) - 1
-            elif len(base) < min :
+            elif len(base) < min:
                 pos = 1
-            else :
+            else:
                 pos = 0
-        else :
+        else:
             result = [allowed[0]] * min
             pos = 0
-        while "".join(result) in self :
-            for c in allowed :
-                try :
+        while "".join(result) in self:
+            for c in allowed:
+                try:
                     result[pos] = c
-                except IndexError :
+                except IndexError:
                     result.append(c)
-                if "".join(result) not in self :
+                if "".join(result) not in self:
                     break
             pos += 1
-        if add :
+        if add:
             self.add("".join(result))
         return "".join(result)
 
-class MultiSet (hdict) :
+
+class MultiSet(hdict):
     """Set with repetitions, ie, function from values to integers.
 
     MultiSets support various operations, in particular: addition
     (`+`), substraction (`-`), multiplication by a non negative
     integer (`*k`), comparisons (`<`, `>`, etc.), length (`len`).
     """
-    def __init__ (self, values=[]) :
+
+    def __init__(self, values=[]):
         """Initialise the multiset, adding values to it.
 
         >>> MultiSet([1, 2, 3, 1, 2])
@@ -135,7 +144,8 @@ class MultiSet (hdict) :
         @type values: `object`
         """
         self.add(values)
-    def copy (self) :
+
+    def copy(self):
         """Copy a `MultiSet`
 
         >>> m1 = MultiSet([1, 2, 3, 1, 2])
@@ -149,9 +159,11 @@ class MultiSet (hdict) :
         result = MultiSet()
         result.update(self)
         return result
+
     __pnmltag__ = "multiset"
+
     # apidoc skip
-    def __pnmldump__ (self) :
+    def __pnmldump__(self):
         """
         >>> MultiSet([1, 2, 3, 4, 1, 2]).__pnmldump__()
         <?xml version="1.0" encoding="utf-8"?>
@@ -201,14 +213,15 @@ class MultiSet (hdict) :
         </pnml>
         """
         nodes = []
-        for value in hdict.__iter__(self) :
-            nodes.append(Tree("item", None,
-                              Tree("value", None, Tree.from_obj(value)),
-                              Tree("multiplicity", str(self[value]))))
+        for value in hdict.__iter__(self):
+            nodes.append(
+                Tree("item", None, Tree("value", None, Tree.from_obj(value)),
+                     Tree("multiplicity", str(self[value]))))
         return Tree(self.__pnmltag__, None, *nodes)
+
     # apidoc skip
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Load a multiset from its PNML representation
 
         >>> t = MultiSet([1, 2, 3, 4, 1, 2]).__pnmldump__()
@@ -216,12 +229,13 @@ class MultiSet (hdict) :
         MultiSet([...])
         """
         result = cls()
-        for item in tree :
+        for item in tree:
             times = int(item.child("multiplicity").data)
             value = item.child("value").child().to_obj()
             result._add(value, times)
         return result
-    def _add (self, value, times=1) :
+
+    def _add(self, value, times=1):
         """Add a single value `times` times.
 
         @param value: the value to add
@@ -230,13 +244,14 @@ class MultiSet (hdict) :
         @type times: non negative `int`
         @raise ValueError: when `times` is negative
         """
-        if times < 0 :
+        if times < 0:
             raise ValueError("negative values are forbidden")
-        try :
+        try:
             self[value] += times
-        except KeyError :
+        except KeyError:
             self[value] = times
-    def add (self, values, times=1) :
+
+    def add(self, values, times=1):
         """Add values to the multiset.
 
         >>> m = MultiSet()
@@ -255,9 +270,10 @@ class MultiSet (hdict) :
         @raise ValueError: when `times` is negative
         """
         self.__mutable__()
-        for value in iterate(values) :
+        for value in iterate(values):
             self._add(value, times)
-    def _remove (self, value, times=1) :
+
+    def _remove(self, value, times=1):
         """Remove a single value `times` times.
 
         @param value: the value to remove
@@ -267,14 +283,15 @@ class MultiSet (hdict) :
         @type times: non negative `int`
         @raise ValueError: when `times` is negative
         """
-        if times < 0 :
+        if times < 0:
             raise ValueError("negative values are forbidden")
-        if times > self.get(value, 0) :
+        if times > self.get(value, 0):
             raise ValueError("not enough occurrences")
         self[value] -= times
-        if self[value] == 0 :
+        if self[value] == 0:
             del self[value]
-    def remove (self, values, times=1) :
+
+    def remove(self, values, times=1):
         """Remove values to the multiset.
 
         >>> m = MultiSet([1, 2, 2, 3] * 2)
@@ -296,9 +313,10 @@ class MultiSet (hdict) :
         @raise ValueError: when `times` is negative
         """
         self.__mutable__()
-        for value in iterate(values) :
+        for value in iterate(values):
             self._remove(value, times)
-    def __call__ (self, value) :
+
+    def __call__(self, value):
         """Number of occurrences of `value`.
 
         >>> m = MultiSet([1, 1, 2, 3, 3, 3])
@@ -310,7 +328,8 @@ class MultiSet (hdict) :
         @rtype: `int`
         """
         return self.get(value, 0)
-    def __iter__ (self) :
+
+    def __iter__(self):
         """Iterate over the values, _including repetitions_. Use
         `MultiSet.keys` to ignore repetitions.
 
@@ -320,10 +339,11 @@ class MultiSet (hdict) :
         @return: an iterator on the elements
         @rtype: `generator`
         """
-        for value in dict.__iter__(self) :
-            for count in range(self[value]) :
+        for value in dict.__iter__(self):
+            for count in range(self[value]):
                 yield value
-    def items (self) :
+
+    def items(self):
         """Return the list of items with repetitions. The list without
         repetitions can be retrieved with `MultiSet.key`.
 
@@ -337,7 +357,8 @@ class MultiSet (hdict) :
         @rtype: `list`
         """
         return list(iter(self))
-    def __str__ (self) :
+
+    def __str__(self):
         """Return a simple string representation of the multiset
 
         >>> str(MultiSet([1, 2, 2, 3]))
@@ -347,7 +368,8 @@ class MultiSet (hdict) :
         @rtype: `str`
         """
         return "{%s}" % ", ".join(repr(x) for x in self)
-    def __repr__ (self) :
+
+    def __repr__(self):
         """Return a string representation of the multiset that is
         suitable for `eval`
 
@@ -358,7 +380,8 @@ class MultiSet (hdict) :
         @rtype: `str`
         """
         return "MultiSet([%s])" % ", ".join(repr(x) for x in self)
-    def __len__ (self) :
+
+    def __len__(self):
         """Return the number of elements, _including repetitions_.
 
         >>> len(MultiSet([1, 2] * 3))
@@ -366,11 +389,12 @@ class MultiSet (hdict) :
 
         @rtype: `int`
         """
-        if self.size() == 0 :
+        if self.size() == 0:
             return 0
-        else :
+        else:
             return reduce(operator.add, self.values())
-    def size (self) :
+
+    def size(self):
         """Return the number of elements, _excluding repetitions_.
 
         >>> MultiSet([1, 2] * 3).size()
@@ -379,7 +403,8 @@ class MultiSet (hdict) :
         @rtype: `int`
         """
         return dict.__len__(self)
-    def __add__ (self, other) :
+
+    def __add__(self, other):
         """Adds two multisets.
 
         >>> MultiSet([1, 2, 3]) + MultiSet([2, 3, 4])
@@ -390,10 +415,11 @@ class MultiSet (hdict) :
         @rtype: `MultiSet`
         """
         result = self.copy()
-        for value, times in dict.items(other) :
+        for value, times in dict.items(other):
             result._add(value, times)
         return result
-    def __sub__ (self, other) :
+
+    def __sub__(self, other):
         """Substract two multisets. The second multiset must be
         smaller than the first one.
 
@@ -410,10 +436,11 @@ class MultiSet (hdict) :
         @raise ValueError: when the second multiset is not smaller
         """
         result = self.copy()
-        for value, times in dict.items(other) :
+        for value, times in dict.items(other):
             result._remove(value, times)
         return result
-    def __mul__ (self, other) :
+
+    def __mul__(self, other):
         """Multiplication by a non-negative integer.
 
         >>> MultiSet([1, 2]) * 3 == MultiSet([1, 2] * 3)
@@ -424,17 +451,19 @@ class MultiSet (hdict) :
         @rtype: `MultiSet`
         @raise ValueError: when `other` is negative
         """
-        if other < 0 :
+        if other < 0:
             raise ValueError("negative values are forbidden")
-        elif other == 0 :
+        elif other == 0:
             return MultiSet()
-        else :
+        else:
             result = self.copy()
-            for value in self.keys() :
+            for value in self.keys():
                 result[value] *= other
             return result
+
     __hash__ = hdict.__hash__
-    def __eq__ (self, other) :
+
+    def __eq__(self, other):
         """Test for equality.
 
         >>> MultiSet([1, 2, 3]*2) == MultiSet([1, 2, 3]*2)
@@ -446,17 +475,18 @@ class MultiSet (hdict) :
         @type other: `MultiSet`
         @rtype: `bool`
         """
-        if len(self) != len(other) :
+        if len(self) != len(other):
             return False
-        else :
-            for val in self :
-                try :
-                    if self[val] != other[val] :
+        else:
+            for val in self:
+                try:
+                    if self[val] != other[val]:
                         return False
-                except (KeyError, TypeError) :
+                except (KeyError, TypeError):
                     return False
         return True
-    def __ne__ (self, other) :
+
+    def __ne__(self, other):
         """Test for difference.
 
         >>> MultiSet([1, 2, 3]*2) != MultiSet([1, 2, 3]*2)
@@ -468,8 +498,9 @@ class MultiSet (hdict) :
         @type other: `MultiSet`
         @rtype: `bool`
         """
-        return not(self == other)
-    def __lt__ (self, other) :
+        return not (self == other)
+
+    def __lt__(self, other):
         """Test for strict inclusion. A multiset `A` is strictly
         included in a multiset `B` iff every element in `A` is also in
         `B` but less repetitions `A` than in `B`.
@@ -489,17 +520,18 @@ class MultiSet (hdict) :
         @type other: `MultiSet`
         @rtype: `bool`
         """
-        if not set(self.keys()) <= set(other.keys()) :
+        if not set(self.keys()) <= set(other.keys()):
             return False
         result = False
-        for value, times in dict.items(self) :
+        for value, times in dict.items(self):
             count = other(value)
-            if times > count :
+            if times > count:
                 return False
-            elif times < count :
+            elif times < count:
                 result = True
         return result or (dict.__len__(self) < dict.__len__(other))
-    def __le__ (self, other) :
+
+    def __le__(self, other):
         """Test for inclusion.
 
         >>> MultiSet([1, 2, 3]) <= MultiSet([1, 2, 3, 4])
@@ -517,14 +549,15 @@ class MultiSet (hdict) :
         @type other: `MultiSet`
         @rtype: `bool`
         """
-        if not set(self.keys()) <= set(other.keys()) :
+        if not set(self.keys()) <= set(other.keys()):
             return False
-        for value, times in dict.items(self) :
+        for value, times in dict.items(self):
             count = other(value)
-            if times > count :
+            if times > count:
                 return False
         return True
-    def __gt__ (self, other) :
+
+    def __gt__(self, other):
         """Test for strict inclusion.
 
         >>> MultiSet([1, 2, 3, 4]) > MultiSet([1, 2, 3])
@@ -543,7 +576,8 @@ class MultiSet (hdict) :
         @rtype: `bool`
         """
         return other.__lt__(self)
-    def __ge__ (self, other) :
+
+    def __ge__(self, other):
         """Test for inclusion.
 
         >>> MultiSet([1, 2, 3, 4]) >= MultiSet([1, 2, 3])
@@ -562,7 +596,8 @@ class MultiSet (hdict) :
         @rtype: `bool`
         """
         return other.__le__(self)
-    def domain (self) :
+
+    def domain(self):
         """Return the domain of the multiset, that is, the set of
         elements that occurr at least once in the multiset.
 
@@ -574,7 +609,8 @@ class MultiSet (hdict) :
         """
         return set(self.keys())
 
-class Substitution (object) :
+
+class Substitution(object):
     """Map names to values or names, equals the identity where not
     defined.
 
@@ -586,7 +622,8 @@ class Substitution (object) :
     avoids the restriction of having only hashable values in a
     substitution image.
     """
-    def __init__ (self, *largs, **dargs) :
+
+    def __init__(self, *largs, **dargs):
         """Initialise using a dictionnary as a mapping.
 
         The expected arguments are any ones acceptables for
@@ -602,17 +639,18 @@ class Substitution (object) :
         Substitution(...)
         """
         self._dict = dict(*largs, **dargs)
+
     # apidoc skip
-    def __hash__ (self) :
+    def __hash__(self):
         """
         >>> hash(Substitution(x=1, y=2)) == hash(Substitution(y=2, x=1))
         True
         """
         # 153913524 = hash('snakes.data.Substitution')
-        return reduce(operator.xor,
-                      (hash(i) for i in self._dict.items()),
+        return reduce(operator.xor, (hash(i) for i in self._dict.items()),
                       153913524)
-    def __eq__ (self, other) :
+
+    def __eq__(self, other):
         """Test for equality.
 
         >>> Substitution(x=1, y=2) == Substitution(y=2, x=1)
@@ -620,11 +658,12 @@ class Substitution (object) :
         >>> Substitution(x=1, y=2) == Substitution(y=1, x=1)
         False
         """
-        try :
+        try:
             return self._dict == other._dict
-        except :
+        except:
             return False
-    def __ne__ (self, other) :
+
+    def __ne__(self, other):
         """Test for inequality.
 
         >>> Substitution(x=1, y=2) != Substitution(y=2, x=1)
@@ -633,9 +672,11 @@ class Substitution (object) :
         True
         """
         return not self.__eq__(other)
+
     __pnmltag__ = "substitution"
+
     # apidoc skip
-    def __pnmldump__ (self) :
+    def __pnmldump__(self):
         """Dumps a substitution to a PNML tree
 
         >>> Substitution(x=1, y=2).__pnmldump__()
@@ -669,15 +710,15 @@ class Substitution (object) :
         @rtype: `snakes.pnml.Tree`
         """
         nodes = []
-        for name, value in self._dict.items() :
-            nodes.append(Tree("item", None,
-                              Tree("name", name),
-                              Tree("value", None,
-                                   Tree.from_obj(value))))
+        for name, value in self._dict.items():
+            nodes.append(
+                Tree("item", None, Tree("name", name),
+                     Tree("value", None, Tree.from_obj(value))))
         return Tree(self.__pnmltag__, None, *nodes)
+
     # apidoc skip
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """Load a substitution from its PNML representation
 
         >>> t = Substitution(x=1, y=2).__pnmldump__()
@@ -690,12 +731,13 @@ class Substitution (object) :
         @rtype: `Substitution`
         """
         result = cls()
-        for item in tree :
+        for item in tree:
             name = item.child("name").data
             value = item.child("value").child().to_obj()
             result._dict[name] = value
         return result
-    def items (self) :
+
+    def items(self):
         """Return the list of pairs `(name, value)` such that the
         substitution maps each `name` to the correspondign `value`.
 
@@ -706,7 +748,8 @@ class Substitution (object) :
         @rtype: `list`
         """
         return list(self._dict.items())
-    def domain (self) :
+
+    def domain(self):
         """Return the set of mapped names.
 
         >>> list(sorted(Substitution(x=1, y=2).domain()))
@@ -716,7 +759,8 @@ class Substitution (object) :
         @rtype: `set`
         """
         return set(self._dict.keys())
-    def image (self) :
+
+    def image(self):
         """Return the list of values associated to the names.
 
         >>> list(sorted(Substitution(x=1, y=2).image()))
@@ -726,7 +770,8 @@ class Substitution (object) :
         @rtype: `list`
         """
         return list(self._dict.values())
-    def __contains__ (self, name) :
+
+    def __contains__(self, name):
         """Test if a name is mapped by the substitution.
 
         >>> 'x' in Substitution(x=1, y=2)
@@ -741,7 +786,8 @@ class Substitution (object) :
         @rtype: `bool`
         """
         return name in self._dict
-    def __iter__ (self) :
+
+    def __iter__(self):
         """Iterate over the mapped names.
 
         >>> list(sorted(iter(Substitution(x=1, y=2))))
@@ -751,7 +797,8 @@ class Substitution (object) :
         @rtype: `generator`
         """
         return iter(self._dict)
-    def __str__ (self) :
+
+    def __str__(self):
         """Return a compact string representation.
 
         >>> str(Substitution(x=1, y=2))
@@ -760,9 +807,10 @@ class Substitution (object) :
         @return: a simple string representation
         @rtype: `str`
         """
-        return "{%s}" % ", ".join(["%s -> %r" % (str(var), val)
-                                   for var, val in self.items()])
-    def __repr__ (self) :
+        return "{%s}" % ", ".join(
+            ["%s -> %r" % (str(var), val) for var, val in self.items()])
+
+    def __repr__(self):
         """Return a string representation suitable for `eval`.
 
         >>> repr(Substitution(x=1, y=2))
@@ -771,10 +819,10 @@ class Substitution (object) :
         @return: a precise string representation
         @rtype: `str`
         """
-        return "%s(%s)" % (self.__class__.__name__,
-                           ", ".join(("%s=%s" % (str(var), repr(val))
-                                      for var, val in self.items())))
-    def dict (self) :
+        return "%s(%s)" % (self.__class__.__name__, ", ".join(
+            ("%s=%s" % (str(var), repr(val)) for var, val in self.items())))
+
+    def dict(self):
         """Return the mapping as a dictionnary.
 
         >>> Substitution(x=1, y=2).dict() == {'x': 1, 'y': 2}
@@ -785,7 +833,8 @@ class Substitution (object) :
         @rtype: `dict`
         """
         return self._dict.copy()
-    def copy (self) :
+
+    def copy(self):
         """Return a distinct copy of the mapping.
 
         >>> s1 = Substitution(x=1, y=2)
@@ -797,7 +846,8 @@ class Substitution (object) :
         @rtype: `Substitution`
         """
         return Substitution(self.dict())
-    def __setitem__ (self, var, value) :
+
+    def __setitem__(self, var, value):
         """Assign an entry to the substitution
 
         >>> s = Substitution()
@@ -811,7 +861,8 @@ class Substitution (object) :
         @type value: `object`
         """
         self._dict[var] = value
-    def __getitem__ (self, var) :
+
+    def __getitem__(self, var):
         """Return the mapped value.
 
         >>> s = Substitution(x=1, y=2)
@@ -827,11 +878,12 @@ class Substitution (object) :
         @rtype: `object`
         @raise DomainError: if `var` does not belong to the domain
         """
-        try :
+        try:
             return self._dict[var]
-        except KeyError :
+        except KeyError:
             raise DomainError("unbound variable '%s'" % var)
-    def __call__ (self, var) :
+
+    def __call__(self, var):
         """Return the mapped value or `var` itself if it is not
         mapped.
 
@@ -847,11 +899,12 @@ class Substitution (object) :
             does not belong to the domain
         @rtype: `object`
         """
-        try :
+        try:
             return self._dict[var]
-        except KeyError :
+        except KeyError:
             return var
-    def __add__ (self, other) :
+
+    def __add__(self, other):
         """Add two substitution.
         Fails with `DomainError` if the two substitutions map a same
         name to different values.
@@ -869,13 +922,14 @@ class Substitution (object) :
         @rtype: `Substitution`
         @raise DomainError: when a name is inconsistently mapped
         """
-        for var in self :
-            if var in other and (self[var] != other[var]) :
+        for var in self:
+            if var in other and (self[var] != other[var]):
                 raise DomainError("conflict on '%s'" % var)
         s = self.__class__(self.dict())
         s._dict.update(other.dict())
         return s
-    def __mul__ (self, other) :
+
+    def __mul__(self, other):
         """Compose two substitutions.
         The composition of `f` and `g` is such that `(f*g)(x)` is
         `f(g(x))`.
@@ -892,10 +946,11 @@ class Substitution (object) :
         @rtype: `Substitution`
         """
         res = self.copy()
-        for var in other :
+        for var in other:
             res._dict[var] = self(other(var))
         return res
-    def restrict (self, domain) :
+
+    def restrict(self, domain):
         """Restrict the substitution to `domain`, ie remove all
         elements that are not in `domain`. Note that `domain` may
         include names that are not in the substitution, they are
@@ -911,14 +966,16 @@ class Substitution (object) :
         @rtype: `Substitution`
         """
         result = self.copy()
-        for name in result.domain() - set(domain) :
+        for name in result.domain() - set(domain):
             result._dict.pop(name, None)
         return result
 
-class Symbol (object) :
+
+class Symbol(object):
     """A symbol that may be used as a constant
     """
-    def __init__ (self, name, export=True) :
+
+    def __init__(self, name, export=True):
         """If `export` is `True`, the created symbol is exported under
         its name. If `export` is `False`, no export is made. Finally,
         if `export` is a string, it specifies the name of the exported
@@ -946,14 +1003,16 @@ class Symbol (object) :
         NameError: ...
         """
         self.name = name
-        if export is True :
+        if export is True:
             export = name
         self._export = export
-        if export :
+        if export:
             inspect.stack()[1][0].f_globals[export] = self
+
     __pnmltag__ = "symbol"
+
     # apidoc skip
-    def __pnmldump__ (self) :
+    def __pnmldump__(self):
         """
         >>> Symbol('egg', 'spam').__pnmldump__()
         <?xml version="1.0" encoding="utf-8"?>
@@ -979,14 +1038,15 @@ class Symbol (object) :
          </symbol>
         </pnml>
         """
-        if self.name == self._export :
+        if self.name == self._export:
             children = []
-        else :
+        else:
             children = [Tree.from_obj(self._export)]
         return Tree(self.__pnmltag__, None, *children, **dict(name=self.name))
+
     # apidoc skip
     @classmethod
-    def __pnmlload__ (cls, tree) :
+    def __pnmlload__(cls, tree):
         """
         >>> Symbol.__pnmlload__(Symbol('foo', 'bar').__pnmldump__())
         Symbol('foo', 'bar')
@@ -996,12 +1056,13 @@ class Symbol (object) :
         Symbol('foo', False)
         """
         name = tree["name"]
-        try :
+        try:
             export = tree.child().to_obj()
-        except :
+        except:
             export = name
         return cls(name, export)
-    def __eq__ (self, other) :
+
+    def __eq__(self, other):
         """Test for equality of two symbols, which is the equality of
         their names.
 
@@ -1010,12 +1071,13 @@ class Symbol (object) :
         >>> Symbol('egg') == Symbol('spam')
         False
         """
-        try :
+        try:
             return (self.__class__.__name__ == other.__class__.__name__
                     and self.name == other.name)
-        except AttributeError :
+        except AttributeError:
             return False
-    def __ne__ (self, other) :
+
+    def __ne__(self, other):
         """Test for inequality.
 
         >>> Symbol('foo', 'bar') != Symbol('foo')
@@ -1024,21 +1086,24 @@ class Symbol (object) :
         True
         """
         return not (self == other)
+
     # apidoc skip
-    def __hash__ (self) :
+    def __hash__(self):
         """
         >>> hash(Symbol('foo', 'bar')) == hash(Symbol('foo'))
         True
         """
         return hash((self.__class__.__name__, self.name))
-    def __str__ (self) :
+
+    def __str__(self):
         """Short string representation
 
         >>> str(Symbol('foo'))
         'foo'
         """
         return self.name
-    def __repr__ (self) :
+
+    def __repr__(self):
         """String representation suitable for `eval`
 
         >>> Symbol('foo')
@@ -1048,8 +1113,8 @@ class Symbol (object) :
         >>> Symbol('bar', False)
         Symbol('bar', False)
         """
-        if self._export == self.name :
+        if self._export == self.name:
             return "%s(%r)" % (self.__class__.__name__, self.name)
-        else :
+        else:
             return "%s(%r, %r)" % (self.__class__.__name__, self.name,
                                    self._export)

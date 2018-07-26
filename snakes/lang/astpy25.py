@@ -9,28 +9,31 @@ import _ast
 from _ast import PyCF_ONLY_AST
 from _ast import AST
 
-for name, cls in inspect.getmembers(_ast, inspect.isclass) :
-    if issubclass(cls, AST) :
-        if cls is AST :
+for name, cls in inspect.getmembers(_ast, inspect.isclass):
+    if issubclass(cls, AST):
+        if cls is AST:
             continue
-        class _Ast (cls, AST) :
-            def __init__ (self, *larg, **karg) :
-                if len(larg) > 0 and len(larg) != len(self._fields) :
-                    raise TypeError, ("%s constructor takes either 0 or "
-                                      "%u positional arguments"
-                                      % (self.__class__.__name__,
-                                         len(self._fields)))
-                for name, arg in zip(self._fields, larg) + karg.items() :
-                    if name in self._fields :
+
+        class _Ast(cls, AST):
+            def __init__(self, *larg, **karg):
+                if len(larg) > 0 and len(larg) != len(self._fields):
+                    raise TypeError, (
+                        "%s constructor takes either 0 or "
+                        "%u positional arguments" % (self.__class__.__name__,
+                                                     len(self._fields)))
+                for name, arg in zip(self._fields, larg) + karg.items():
+                    if name in self._fields:
                         setattr(self, name, arg)
-        try :
+
+        try:
             _Ast._fields = tuple(cls._fields)
-        except :
+        except:
             _Ast._fields = ()
         _Ast.__name__ = name
         globals()[name] = _Ast
 
 del _Ast, cls, name
+
 
 def literal_eval(node_or_string):
     """Safely evaluate an expression node or a string containing a
@@ -43,6 +46,7 @@ def literal_eval(node_or_string):
         node_or_string = parse(node_or_string, mode='eval')
     if isinstance(node_or_string, Expression):
         node_or_string = node_or_string.body
+
     def _convert(node):
         if isinstance(node, Str):
             return node.s
@@ -53,13 +57,15 @@ def literal_eval(node_or_string):
         elif isinstance(node, List):
             return list(map(_convert, node.elts))
         elif isinstance(node, Dict):
-            return dict((_convert(k), _convert(v)) for k, v
-                        in zip(node.keys, node.values))
+            return dict((_convert(k), _convert(v))
+                        for k, v in zip(node.keys, node.values))
         elif isinstance(node, Name):
             if node.id in _safe_names:
                 return _safe_names[node.id]
         raise ValueError('malformed string')
+
     return _convert(node_or_string)
+
 
 def dump(node, annotate_fields=True, include_attributes=False):
     """Return a formatted dump of the tree in `node`. This is mainly
@@ -70,14 +76,13 @@ def dump(node, annotate_fields=True, include_attributes=False):
     not dumped by default. If this is wanted, `include_attributes` can
     be set to `True`.
     """
+
     def _format(node):
         if isinstance(node, AST):
             fields = [(a, _format(b)) for a, b in iter_fields(node)]
             rv = '%s(%s' % (node.__class__.__name__, ', '.join(
                 ('%s=%s' % field for field in fields)
-                if annotate_fields else
-                (b for a, b in fields)
-            ))
+                if annotate_fields else (b for a, b in fields)))
             if include_attributes and node._attributes:
                 rv += fields and ', ' or ' '
                 rv += ', '.join('%s=%s' % (a, _format(getattr(node, a)))
@@ -86,9 +91,11 @@ def dump(node, annotate_fields=True, include_attributes=False):
         elif isinstance(node, list):
             return '[%s]' % ', '.join(_format(x) for x in node)
         return repr(node)
+
     if not isinstance(node, AST):
         raise TypeError('expected AST, got %r' % node.__class__.__name__)
     return _format(node)
+
 
 def copy_location(new_node, old_node):
     """Copy source location (`lineno` and `col_offset` attributes)
@@ -100,6 +107,7 @@ def copy_location(new_node, old_node):
             setattr(new_node, attr, getattr(old_node, attr))
     return new_node
 
+
 def fix_missing_locations(node):
     """When you compile a node tree with `compile()`, the compiler
     expects `lineno` and `col_offset` attributes for every node that
@@ -108,6 +116,7 @@ def fix_missing_locations(node):
     already set, by setting them to the values of the parent node. It
     works recursively starting at `node`.
     """
+
     def _fix(node, lineno, col_offset):
         if 'lineno' in node._attributes:
             if not hasattr(node, 'lineno'):
@@ -121,8 +130,10 @@ def fix_missing_locations(node):
                 col_offset = node.col_offset
         for child in iter_child_nodes(node):
             _fix(child, lineno, col_offset)
+
     _fix(node, 1, 0)
     return node
+
 
 def increment_lineno(node, n=1):
     '''Increment the line number of each node in the tree starting at
@@ -136,6 +147,7 @@ def increment_lineno(node, n=1):
             child.lineno = getattr(child, 'lineno', 0) + n
     return node
 
+
 def iter_fields(node):
     """Yield a tuple of `(fieldname, value)` for each field in
     `node._fields` that is present on `node`.
@@ -145,6 +157,7 @@ def iter_fields(node):
             yield field, getattr(node, field)
         except AttributeError:
             pass
+
 
 def iter_child_nodes(node):
     """Yield all direct child nodes of `node`, that is, all fields
@@ -157,6 +170,7 @@ def iter_child_nodes(node):
             for item in field:
                 if isinstance(item, AST):
                     yield item
+
 
 def get_docstring(node, clean=True):
     """Return the docstring for the given `node` or `None` if no
@@ -171,6 +185,7 @@ def get_docstring(node, clean=True):
             return inspect.cleandoc(node.body[0].value.s)
         return node.body[0].value.s
 
+
 def walk(node):
     """Recursively yield all child nodes of `node`, in no specified
     order. This is useful if you only want to modify nodes in place
@@ -182,6 +197,7 @@ def walk(node):
         node = todo.popleft()
         todo.extend(iter_child_nodes(node))
         yield node
+
 
 class NodeVisitor(object):
     """A node visitor base class that walks the abstract syntax tree
@@ -202,11 +218,13 @@ class NodeVisitor(object):
     during traversing. For this a special visitor exists
     (`NodeTransformer`) that allows modifications.
     """
+
     def visit(self, node):
         """Visit a node."""
         method = 'visit_' + node.__class__.__name__
         visitor = getattr(self, method, self.generic_visit)
         return visitor(node)
+
     def generic_visit(self, node):
         """Called if no explicit visitor function exists for a node."""
         for field, value in iter_fields(node):
@@ -216,6 +234,7 @@ class NodeVisitor(object):
                         self.visit(item)
             elif isinstance(value, AST):
                 self.visit(value)
+
 
 class NodeTransformer(NodeVisitor):
     """A `NodeVisitor` subclass that walks the abstract syntax tree
@@ -252,6 +271,7 @@ class NodeTransformer(NodeVisitor):
         node = YourTransformer().visit(node)
 
     """
+
     def generic_visit(self, node):
         for field, old_value in iter_fields(node):
             old_value = getattr(node, field, None)
@@ -275,26 +295,28 @@ class NodeTransformer(NodeVisitor):
                     setattr(node, field, new_node)
         return node
 
-def _ast2ast (node) :
+
+def _ast2ast(node):
     new = globals()[node.__class__.__name__]()
-    if not hasattr(node, "_fields") or node._fields is None :
+    if not hasattr(node, "_fields") or node._fields is None:
         node._fields = ()
-    for name, field in iter_fields(node) :
+    for name, field in iter_fields(node):
         new_field = field
-        if field is None :
+        if field is None:
             new_field = None
-        elif isinstance(field, AST) :
+        elif isinstance(field, AST):
             new_field = _ast2ast(field)
-        elif isinstance(field, list) :
+        elif isinstance(field, list):
             new_field = []
-            for value in field :
-                if isinstance(value, AST) :
+            for value in field:
+                if isinstance(value, AST):
                     new_field.append(_ast2ast(value))
-                else :
+                else:
                     new_field.append(value)
         setattr(new, name, new_field)
     copy_location(new, node)
     return new
+
 
 def parse(expr, filename='<unknown>', mode='exec'):
     """Parse an expression into an AST node. Equivalent to

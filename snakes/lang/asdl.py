@@ -3,6 +3,7 @@ from snakes.lang.pylib import asdl
 from collections import defaultdict
 from functools import partial
 
+
 class memoize(object):
     def __init__(self, function):
         self.function = function
@@ -21,11 +22,12 @@ class memoize(object):
         """
         return partial(self.__call__, obj)
 
+
 def component_has_cycle(node, graph, proceeding, visited):
     if node in visited:
         return False
     if node in proceeding:
-        proceeding.append(node) # populate trace
+        proceeding.append(node)  # populate trace
         return True
     proceeding.append(node)
     if node in graph:
@@ -35,6 +37,7 @@ def component_has_cycle(node, graph, proceeding, visited):
     proceeding.remove(node)
     visited.add(node)
     return False
+
 
 def has_cycle(graph):
     visited = set()
@@ -49,12 +52,14 @@ def has_cycle(graph):
         todo.difference_update(visited)
     return []
 
+
 class CyclicDependencies(Exception):
     def __init__(self, seq):
         self.seq = seq
 
     def __str__(self):
         return "cyclic dependencies: {}".format(" -> ".join(self.seq))
+
 
 def remove_duplicates(l):
     d = {}
@@ -65,8 +70,8 @@ def remove_duplicates(l):
             nl.append(e)
     return nl
 
-class CodeGen (asdl.VisitorBase) :
 
+class CodeGen(asdl.VisitorBase):
     def __init__(self, node):
         asdl.VisitorBase.__init__(self)
 
@@ -105,7 +110,7 @@ class CodeGen (asdl.VisitorBase) :
         for child in node.types:
             self.visit(child)
 
-    def visitConstructor (self, node):
+    def visitConstructor(self, node):
         if str(node.name) in self.fields:
             #print >> sys.stderr, "constructor '{!s}' appears twice !".format(node.name)
             #exit(0)
@@ -119,7 +124,7 @@ class CodeGen (asdl.VisitorBase) :
     @memoize
     def _get_fields(self, name):
         if self.fields.has_key(name):
-            fields = map(lambda f : f.name, self.fields[name])
+            fields = map(lambda f: f.name, self.fields[name])
             for parent in self.hierarchy[name]:
                 fields.extend(self._get_fields(parent))
             return fields
@@ -130,7 +135,7 @@ class CodeGen (asdl.VisitorBase) :
     def _get_attributes(self, name):
         if name == '_AST':
             return []
-        attributes = map(lambda a : a.name, self.attributes[name])
+        attributes = map(lambda a: a.name, self.attributes[name])
         for parent in self.hierarchy[name]:
             attributes.extend(self._get_attributes(parent))
         return attributes
@@ -139,21 +144,17 @@ class CodeGen (asdl.VisitorBase) :
         is_methods = []
         for name in sorted(self.hierarchy):
             if name != '_AST':
-                is_methods.extend(["",
-                                   "def is{!s}(self):".format(name),
-                                   ["return False"]
-                                  ])
-        cls = ["class _AST (ast.AST):",
-               ["_fields = ()",
-                "_attributes = ()",
-                "",
-                "def __init__ (self, **ARGS):",
-                ["ast.AST.__init__(self)",
-                 "for k, v in ARGS.items():",
-                 ["setattr(self, k, v)"]
+                is_methods.extend(
+                    ["", "def is{!s}(self):".format(name), ["return False"]])
+        cls = [
+            "class _AST (ast.AST):", [
+                "_fields = ()", "_attributes = ()", "",
+                "def __init__ (self, **ARGS):", [
+                    "ast.AST.__init__(self)", "for k, v in ARGS.items():",
+                    ["setattr(self, k, v)"]
                 ]
-               ] + is_methods
-              ]
+            ] + is_methods
+        ]
         self.code['_AST'] = cls
 
         for name, parents in self.hierarchy.iteritems():
@@ -189,8 +190,9 @@ class CodeGen (asdl.VisitorBase) :
 
             args = non_default_args + default_args
 
-            body.append("_fields = {!r}".format( tuple(map(repr, _fields))))
-            body.append("_attributes = {!r}".format( tuple(map(repr, _attributes))))
+            body.append("_fields = {!r}".format(tuple(map(repr, _fields))))
+            body.append("_attributes = {!r}".format(
+                tuple(map(repr, _attributes))))
             body.append("")
             # ctor
             args_str = ", ".join(args)
@@ -199,7 +201,9 @@ class CodeGen (asdl.VisitorBase) :
             body.append("def __init__ (self, {!s} **ARGS):".format(args_str))
             ctor_body = []
             body.append(ctor_body)
-            ctor_body.extend(map(lambda base : "{!s}.__init__(self, **ARGS)".format(base), parents))
+            ctor_body.extend(
+                map(lambda base: "{!s}.__init__(self, **ARGS)".format(base),
+                    parents))
             ctor_body.extend(assign)
 
             body.extend(["", "def is{}(self):".format(name), ["return True"]])
@@ -220,22 +224,22 @@ class CodeGen (asdl.VisitorBase) :
         classes = self.hierarchy.keys()
         classes.sort(lambda a, b: self._cost(a) - self._cost(b))
 
-        code = ["from snakes.lang import ast",
-                "from ast import *",
-                ""]
+        code = ["from snakes.lang import ast", "from ast import *", ""]
 
         for cls in classes:
             code.extend(self.code[cls])
             code.append("")
 
-        def python (code, indent) :
-            for line in code :
-                if isinstance(line, str) :
-                    yield (4*indent) * " " + line
-                else :
-                    for sub in python(line, indent+1) :
+        def python(code, indent):
+            for line in code:
+                if isinstance(line, str):
+                    yield (4 * indent) * " " + line
+                else:
+                    for sub in python(line, indent + 1):
                         yield sub
+
         return "\n".join(python(code, 0))
+
 
 def compile_asdl(infilename, outfilename):
     """Helper function to compile asdl files.
@@ -256,32 +260,32 @@ def compile_asdl(infilename, outfilename):
     outfile.close()
     infile.close()
 
+
 if __name__ == "__main__":
     # a simple CLI
     import getopt
     outfile = sys.stdout
-    try :
-        opts, args = getopt.getopt(sys.argv[1:], "ho:",
-                                   ["help", "output="])
-        if ("-h", "") in opts or ("--help", "") in opts :
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "ho:", ["help", "output="])
+        if ("-h", "") in opts or ("--help", "") in opts:
             opts = [("-h", "")]
             args = [None]
-        elif not args :
+        elif not args:
             raise getopt.GetoptError("no input file provided"
                                      " (try -h to get help)")
-        elif len(args) > 1 :
+        elif len(args) > 1:
             raise getopt.GetoptError("more than one input file provided")
-    except getopt.GetoptError :
+    except getopt.GetoptError:
         sys.stderr.write("%s: %s\n" % (__file__, sys.exc_info()[1]))
         sys.exit(1)
-    for (flag, arg) in opts :
-        if flag in ("-h", "--help") :
+    for (flag, arg) in opts:
+        if flag in ("-h", "--help"):
             print("""usage: %s [OPTIONS] INFILE
     Options:
         -h, --help         print this help and exit
         --output=OUTPUT    set output file""" % __file__)
             sys.exit(0)
-        elif flag in ("-o", "--output") :
+        elif flag in ("-o", "--output"):
             outfile = open(arg, "w")
     scanner = asdl.ASDLScanner()
     parser = asdl.ASDLParser()

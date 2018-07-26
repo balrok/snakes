@@ -25,8 +25,10 @@ Entry point of the compiler
 # apidoc stop
 from snakes import SnakesError
 
-class CompilationError (SnakesError) :
+
+class CompilationError(SnakesError):
     pass
 
-class DeclarationError (SnakesError) :
+
+class DeclarationError(SnakesError):
     pass

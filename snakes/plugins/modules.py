@@ -46,63 +46,71 @@ from snakes.plugins import plugin, new_instance
 from snakes.data import iterate
 from snakes.pnml import Tree
 
-@plugin("snakes.nets",
-        depends=["snakes.plugins.labels"])
-def extend (module) :
-    class Transition (module.Transition) :
-        def __init__ (self, name, guard=None, **options) :
+
+@plugin("snakes.nets", depends=["snakes.plugins.labels"])
+def extend(module):
+    class Transition(module.Transition):
+        def __init__(self, name, guard=None, **options):
             mod = set(iterate(options.pop("modules", [])))
             module.Transition.__init__(self, name, guard, **options)
             self.modules(mod)
-        def modules (self, modules=None) :
-            if modules is None :
+
+        def modules(self, modules=None):
+            if modules is None:
                 return self.label("modules")
-            else :
+            else:
                 self.label(modules=set(iterate(modules)))
-    class Place (module.Place) :
-        def __init__ (self, name, tokens=[], check=None, **options) :
+
+    class Place(module.Place):
+        def __init__(self, name, tokens=[], check=None, **options):
             mod = set(iterate(options.pop("modules", [])))
             module.Place.__init__(self, name, tokens, check, **options)
             self.modules(mod)
-        def modules (self, modules=None) :
-            if modules is None :
+
+        def modules(self, modules=None):
+            if modules is None:
                 return self.label("modules")
-            else :
+            else:
                 self.label(modules=set(iterate(modules)))
-    class PetriNet (module.PetriNet) :
-        def __init__ (self, name, **options) :
+
+    class PetriNet(module.PetriNet):
+        def __init__(self, name, **options):
             mod = set(iterate(options.pop("modules", [])))
             module.PetriNet.__init__(self, name, **options)
             self.modules(mod)
-        def modules (self, modules=None) :
-            if modules is None :
+
+        def modules(self, modules=None):
+            if modules is None:
                 return self.label("modules")
             mod = set(iterate(modules))
             self.label(modules=mod)
-            for node in self.node() :
+            for node in self.node():
                 node.modules(mod | node.modules())
-        def add_place (self, place, **options) :
+
+        def add_place(self, place, **options):
             mod = set(iterate(options.pop("modules", self.modules())))
             module.PetriNet.add_place(self, place, **options)
             place.modules(place.modules() | mod)
-        def add_transition (self, trans, **options) :
+
+        def add_transition(self, trans, **options):
             mod = set(iterate(options.pop("modules", self.modules())))
             module.PetriNet.add_transition(self, trans, **options)
             trans.modules(trans.modules() | mod)
-        def merge_places (self, target, sources, **options) :
+
+        def merge_places(self, target, sources, **options):
             mod = set(iterate(options.pop("modules", self.modules())))
             module.PetriNet.merge_places(self, target, sources, **options)
             new = self.place(target)
-            new.modules(reduce(set.__or__,
-                               (self.place(p).modules()
-                                for p in sources),
-                               mod))
-        def merge_transitions (self, target, sources, **options) :
+            new.modules(
+                reduce(set.__or__, (self.place(p).modules() for p in sources),
+                       mod))
+
+        def merge_transitions(self, target, sources, **options):
             mod = set(iterate(options.pop("modules", self.modules())))
             module.PetriNet.merge_transitions(self, target, sources, **options)
             new = self.transition(target)
-            new.modules(reduce(set.__or__,
-                               (self.place(p).modules()
-                                for p in sources),
-                               mod))
+            new.modules(
+                reduce(set.__or__, (self.place(p).modules() for p in sources),
+                       mod))
+
     return Transition, Place, PetriNet

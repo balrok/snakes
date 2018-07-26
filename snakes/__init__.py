@@ -21,36 +21,42 @@
 
 version = "0.9.25"
 defaultencoding = "utf-8"
-
 """## Module `snakes`
 
 This module only provides the exceptions used throughout SNAKES.
 """
 
-class SnakesError (Exception) :
+
+class SnakesError(Exception):
     "Generic error in SNAKES"
     pass
 
-class ConstraintError (SnakesError) :
+
+class ConstraintError(SnakesError):
     "Violation of a constraint"
     pass
 
-class NodeError (SnakesError) :
+
+class NodeError(SnakesError):
     "Error related to a place or a transition"
     pass
 
-class DomainError (SnakesError) :
+
+class DomainError(SnakesError):
     "Function applied out of its domain"
     pass
 
-class ModeError (SnakesError) :
+
+class ModeError(SnakesError):
     "The modes of a transition cannot be found"
     pass
 
-class PluginError (SnakesError) :
+
+class PluginError(SnakesError):
     "Error when adding a plugin"
     pass
 
-class UnificationError (SnakesError) :
+
+class UnificationError(SnakesError):
     "Error while unifying parameters"
     pass

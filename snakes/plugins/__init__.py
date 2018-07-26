@@ -52,23 +52,25 @@ Hello from a net
 import imp, sys, inspect
 from functools import wraps
 
+
 # apidoc skip
-def update (module, objects) :
+def update(module, objects):
     """Update a module content
     """
-    for obj in objects :
-        if isinstance(obj, tuple) :
-            try :
+    for obj in objects:
+        if isinstance(obj, tuple):
+            try:
                 n, o = obj
-            except :
+            except:
                 raise ValueError("expected (name, object) and got '%r'" % obj)
             setattr(module, n, o)
-        elif inspect.isclass(obj) or inspect.isfunction(obj) :
+        elif inspect.isclass(obj) or inspect.isfunction(obj):
             setattr(module, obj.__name__, obj)
-        else :
+        else:
             raise ValueError("cannot plug '%r'" % obj)
 
-def load (plugins, base, name=None) :
+
+def load(plugins, base, name=None):
     """Load plugins, `plugins` can be a single plugin name, a module
     or a list of such values. If `name` is not `None`, the extended
     module is loaded as `name` in `sys.modules` as well as in the
@@ -84,29 +86,30 @@ def load (plugins, base, name=None) :
     @return: the extended module
     @rtype: `module`
     """
-    if type(base) is str :
+    if type(base) is str:
         result = __import__(base, fromlist=["__name__"])
-    else :
+    else:
         result = base
-    if isinstance(plugins, str) :
+    if isinstance(plugins, str):
         plugins = [plugins]
-    else :
-        try :
+    else:
+        try:
             plugins = list(plugins)
-        except TypeError :
+        except TypeError:
             plugins = [plugins]
-    for i, p in enumerate(plugins) :
-        if isinstance(p, str) and not p.startswith("snakes.plugins.") :
+    for i, p in enumerate(plugins):
+        if isinstance(p, str) and not p.startswith("snakes.plugins."):
             plugins[i] = "snakes.plugins." + p
-    for plug in plugins :
-        if type(plug) is str :
+    for plug in plugins:
+        if type(plug) is str:
             plug = __import__(plug, fromlist=["__name__"])
         result = plug.extend(result)
-    if name is not None :
+    if name is not None:
         result.__name__ = name
         sys.modules[name] = result
         inspect.stack()[1][0].f_globals[name] = result
     return result
+
 
 """## Creating plugins ###
 
@@ -124,7 +127,6 @@ resolve plugin dependencies and conflicts.
 """
 
 # apidoc include "hello.py" lang="python"
-
 """Note that, when extending an existing method like `__init__` above,
 we have to take care that you may be working on an already extended
 class, consequently, we cannot know how its arguments have been
@@ -133,7 +135,8 @@ method plus `**args`. Then, we remove from the latter what your plugin
 needs and pass the remaining to the method of the base class if we
 need to call it (which is usually the case). """
 
-def plugin (base, depends=[], conflicts=[]) :
+
+def plugin(base, depends=[], conflicts=[]):
     """Decorator for extension functions
 
     @param base: name of base module (usually 'snakes.nets') that the
@@ -148,43 +151,48 @@ def plugin (base, depends=[], conflicts=[]) :
     @return: the appropriate decorator
     @rtype: `decorator`
     """
-    def wrapper (fun) :
+
+    def wrapper(fun):
         @wraps(fun)
-        def extend (module) :
-            try :
+        def extend(module):
+            try:
                 loaded = set(module.__plugins__)
-            except AttributeError :
+            except AttributeError:
                 loaded = set()
-            for name in depends :
-                if name not in loaded :
+            for name in depends:
+                if name not in loaded:
                     module = load(name, module)
                     loaded.update(module.__plugins__)
             conf = set(conflicts) & loaded
-            if len(conf) > 0 :
+            if len(conf) > 0:
                 raise ValueError("plugin conflict (%s)" % ", ".join(conf))
             objects = fun(module)
-            if type(objects) is not tuple :
-                objects = (objects,)
+            if type(objects) is not tuple:
+                objects = (objects, )
             return build(fun.__module__, module, *objects)
+
         module = sys.modules[fun.__module__]
-        module.__test__ = {"extend" : extend}
+        module.__test__ = {"extend": extend}
         objects = fun(__import__(base, fromlist=["__name__"]))
-        if type(objects) is not tuple :
-            objects = (objects,)
+        if type(objects) is not tuple:
+            objects = (objects, )
         update(module, objects)
         return extend
+
     return wrapper
 
+
 # apidoc skip
-def new_instance (cls, obj) :
+def new_instance(cls, obj):
     """Create a copy of `obj` which is an instance of `cls`
     """
     result = object.__new__(cls)
     result.__dict__.update(obj.__dict__)
     return result
 
+
 # apidoc skip
-def build (name, module, *objects) :
+def build(name, module, *objects):
     """Builds an extended module.
 
     The parameter `module` is exactly that taken by the function
@@ -205,9 +213,8 @@ def build (name, module, *objects) :
     result.__dict__.update(module.__dict__)
     update(result, objects)
     result.__plugins__ = (module.__dict__.get("__plugins__",
-                                              (module.__name__,))
-                          + (name,))
-    for obj in objects :
-        if inspect.isclass(obj) :
+                                              (module.__name__, )) + (name, ))
+    for obj in objects:
+        if inspect.isclass(obj):
             obj.__plugins__ = result.__plugins__
     return result

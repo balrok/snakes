@@ -17,6 +17,7 @@ import traceback
 
 from . import spark
 
+
 class Token:
     # spark seems to dispatch in the parser based on a token's
     # type attribute
@@ -30,6 +31,7 @@ class Token:
     def __repr__(self):
         return str(self)
 
+
 class Id(Token):
     def __init__(self, value, lineno):
         self.type = 'Id'
@@ -39,14 +41,15 @@ class Id(Token):
     def __str__(self):
         return self.value
 
+
 class String(Token):
     def __init__(self, value, lineno):
         self.type = 'String'
         self.value = value
         self.lineno = lineno
 
-class ASDLSyntaxError:
 
+class ASDLSyntaxError:
     def __init__(self, lineno, token=None, msg=None):
         self.lineno = lineno
         self.token = token
@@ -58,8 +61,8 @@ class ASDLSyntaxError:
         else:
             return "%s, line %d" % (self.msg, self.lineno)
 
-class ASDLScanner(spark.GenericScanner, object):
 
+class ASDLScanner(spark.GenericScanner, object):
     def tokenize(self, input):
         self.rv = []
         self.lineno = 1
@@ -76,7 +79,7 @@ class ASDLScanner(spark.GenericScanner, object):
         r'"[^"]*"'
         self.rv.append(String(s, self.lineno))
 
-    def t_xxx(self, s): # not sure what this production means
+    def t_xxx(self, s):  # not sure what this production means
         r"<="
         self.rv.append(Token(s, self.lineno))
 
@@ -100,6 +103,7 @@ class ASDLScanner(spark.GenericScanner, object):
         r" . +"
         raise ValueError("unmatched input: %r" % s)
 
+
 class ASDLParser(spark.GenericParser, object):
     def __init__(self):
         super(ASDLParser, self).__init__("module")
@@ -114,29 +118,29 @@ class ASDLParser(spark.GenericParser, object):
         "module ::= Id Id version { }"
         (module, name, version, _0, _1) = arg
         if module.value != "module":
-            raise ASDLSyntaxError(module.lineno,
-                                  msg="expected 'module', found %s" % module)
+            raise ASDLSyntaxError(
+                module.lineno, msg="expected 'module', found %s" % module)
         return Module(name, None, version)
 
     def p_module(self, arg):
         "module ::= Id Id version { definitions }"
         (module, name, version, _0, definitions, _1) = arg
         if module.value != "module":
-            raise ASDLSyntaxError(module.lineno,
-                                  msg="expected 'module', found %s" % module)
+            raise ASDLSyntaxError(
+                module.lineno, msg="expected 'module', found %s" % module)
         return Module(name, definitions, version)
 
     def p_version(self, arg):
         "version ::= Id String"
         (version, V) = arg
         if version.value != "version":
-            raise ASDLSyntaxError(version.lineno,
-                                  msg="expected 'version', found %" % version)
+            raise ASDLSyntaxError(
+                version.lineno, msg="expected 'version', found %" % version)
         return V
 
     def p_definition_0(self, arg):
         "definitions ::= definition"
-        (definition,) = arg
+        (definition, ) = arg
         return definition
 
     def p_definition_1(self, arg):
@@ -151,20 +155,20 @@ class ASDLParser(spark.GenericParser, object):
 
     def p_type_0(self, arg):
         "type ::= product"
-        (product,) = arg
+        (product, ) = arg
         return product
 
     def p_type_1(self, arg):
         "type ::= sum"
-        (sum,) = arg
+        (sum, ) = arg
         return Sum(sum)
 
     def p_type_2(self, arg):
         "type ::= sum Id ( fields )"
         (sum, id, _0, attributes, _1) = arg
         if id.value != "attributes":
-            raise ASDLSyntaxError(id.lineno,
-                                  msg="expected attributes, found %s" % id)
+            raise ASDLSyntaxError(
+                id.lineno, msg="expected attributes, found %s" % id)
         if attributes:
             attributes.reverse()
         return Sum(sum, attributes)
@@ -176,8 +180,8 @@ class ASDLParser(spark.GenericParser, object):
         return Product(fields)
 
     def p_sum_0(self, arg):
-        "sum ::= constructor"""
-        (constructor,) = arg
+        "sum ::= constructor" ""
+        (constructor, ) = arg
         return [constructor]
 
     def p_sum_1(self, arg):
@@ -192,7 +196,7 @@ class ASDLParser(spark.GenericParser, object):
 
     def p_constructor_0(self, arg):
         "constructor ::= Id"
-        (id,) = arg
+        (id, ) = arg
         return Constructor(id)
 
     def p_constructor_1(self, arg):
@@ -203,7 +207,7 @@ class ASDLParser(spark.GenericParser, object):
 
     def p_fields_0(self, arg):
         "fields ::= field"
-        (field,) = arg
+        (field, ) = arg
         return [field]
 
     def p_fields_1(self, arg):
@@ -213,7 +217,7 @@ class ASDLParser(spark.GenericParser, object):
 
     def p_field_0(self, arg):
         "field ::= Id"
-        (type,) = arg
+        (type, ) = arg
         return Field(type)
 
     def p_field_1(self, arg):
@@ -241,26 +245,30 @@ class ASDLParser(spark.GenericParser, object):
         (type, _) = arg
         return Field(type, opt=1)
 
+
 builtin_types = ("identifier", "string", "int", "bool", "object")
 
 # below is a collection of classes to capture the AST of an AST :-)
 # not sure if any of the methods are useful yet, but I'm adding them
 # piecemeal as they seem helpful
 
+
 class AST:
-    pass # a marker class
+    pass  # a marker class
+
 
 class Module(AST):
     def __init__(self, name, dfns, version):
         self.name = name
         self.dfns = dfns
         self.version = version
-        self.types = {} # maps type name to value (from dfns)
+        self.types = {}  # maps type name to value (from dfns)
         for type in dfns:
             self.types[type.name.value] = type.value
 
     def __repr__(self):
         return "Module(%s, %s)" % (self.name, self.dfns)
+
 
 class Type(AST):
     def __init__(self, name, value):
@@ -270,6 +278,7 @@ class Type(AST):
     def __repr__(self):
         return "Type(%s, %s)" % (self.name, self.value)
 
+
 class Constructor(AST):
     def __init__(self, name, fields=None):
         self.name = name
@@ -277,6 +286,7 @@ class Constructor(AST):
 
     def __repr__(self):
         return "Constructor(%s, %s)" % (self.name, self.fields)
+
 
 class Field(AST):
     def __init__(self, type, name=None, seq=0, opt=0):
@@ -297,6 +307,7 @@ class Field(AST):
         else:
             return "Field(%s, %s%s)" % (self.type, self.name, extra)
 
+
 class Sum(AST):
     def __init__(self, types, attributes=None):
         self.types = types
@@ -308,6 +319,7 @@ class Sum(AST):
         else:
             return "Sum(%s, %s)" % (self.types, self.attributes)
 
+
 class Product(AST):
     def __init__(self, fields):
         self.fields = fields
@@ -315,8 +327,8 @@ class Product(AST):
     def __repr__(self):
         return "Product(%s)" % self.fields
 
-class VisitorBase(object):
 
+class VisitorBase(object):
     def __init__(self, skip=0):
         self.cache = {}
         self.skip = skip
@@ -350,8 +362,8 @@ class VisitorBase(object):
             self.cache[klass] = meth
         return meth
 
-class Check(VisitorBase):
 
+class Check(VisitorBase):
     def __init__(self):
         super(Check, self).__init__(skip=1)
         self.cons = {}
@@ -390,6 +402,7 @@ class Check(VisitorBase):
         for f in prod.fields:
             self.visit(f, name)
 
+
 def check(mod):
     v = Check()
     v.visit(mod)
@@ -401,6 +414,7 @@ def check(mod):
             print("Undefined type %s, used in %s" % (t, uses))
 
     return not v.errors
+
 
 def parse(file):
     scanner = ASDLScanner()
@@ -414,7 +428,8 @@ def parse(file):
         err = sys.exc_info()[1]
         print(err)
         lines = buf.split("\n")
-        print(lines[err.lineno - 1]) # lines starts at 0, files at 1
+        print(lines[err.lineno - 1])  # lines starts at 0, files at 1
+
 
 if __name__ == "__main__":
     import glob
