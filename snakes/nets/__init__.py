@@ -15,6 +15,13 @@ from snakes.typing import *
 ## Auxiliary definitions ##
 """
 
+def setRealname(model, tree):
+    model.realname = model.name
+    if tree.has_child("name"):
+        name = tree.child("name")
+        if name.has_child("text"):
+            name = name.child("text").data
+            model.realname = name
 
 class Evaluator(object):
     """Evaluate expression or execute statements in shareable
@@ -2168,14 +2175,17 @@ class Place(Node):
         True
         """
         if tree.has_child("type"):
-            return cls(tree["id"],
+            result = cls(tree["id"],
                        tree.child("initialMarking").child().to_obj(),
                        tree.child("type").to_obj())
-        try:
-            toks = int(tree.child("initialMarking").child("text").data)
-        except:
-            toks = 0
-        return cls(tree["id"], [dot] * toks, tBlackToken)
+        else:
+            try:
+                toks = int(tree.child("initialMarking").child("text").data)
+            except:
+                toks = 0
+            result = cls(tree["id"], [dot] * toks, tBlackToken)
+        setRealname(result, tree)
+        return result
 
     def checker(self, check=None):
         """Change or return the type of the place: if `check` is
@@ -2354,6 +2364,15 @@ class Place(Node):
         self.check(iterate(tokens))
         self.tokens = MultiSet(tokens)
 
+""" used by Page """
+class ReferencePlace(Place):
+    __pnmltag__ = "referencePlace"
+    @classmethod
+    def __pnmlload__(cls, tree):
+        result = super().__pnmlload__(tree)
+        result.ref = tree["ref"]
+        return result
+
 
 class Transition(Node):
     "A transition in a Petri net."
@@ -2438,10 +2457,12 @@ class Transition(Node):
         >>> Transition.__pnmlload__(t)
         Transition('t', Expression('x==y'))
         """
-        try:
-            return cls(tree["id"], tree.child("guard").child().to_obj())
-        except SnakesError:
-            return cls(tree["id"])
+        try :
+            result = cls(tree["id"], tree.child("guard").child().to_obj())
+        except SnakesError :
+            result = cls(tree["id"])
+        setRealname(result, tree)
+        return result
 
     # apidoc skip
     def __str__(self):
@@ -2866,6 +2887,15 @@ class Transition(Node):
             raise ValueError("transition not enabled for %s" % binding)
 
 
+""" used by page """
+class ReferenceTransition(Transition):
+    __pnmltag__ = "referenceTransition"
+    @classmethod
+    def __pnmlload__(cls, tree):
+        result = super().__pnmlload__(tree)
+        result.ref = tree["ref"]
+        return result
+
 """
 ## Marking, Petri nets and state graphs ##
 """
@@ -3236,6 +3266,7 @@ class PetriNet(object):
         self._node = {}
         self._declare = []
         self.globals = Evaluator()
+        self.pages = []
 
     # apidoc skip
     def __hash__(self):
@@ -3435,6 +3466,8 @@ class PetriNet(object):
                             "source": trans.name,
                             "target": place.name
                         }))
+        for pg in self.pages:
+            root.add_child(Tree.from_obj(pg))
         return root
 
     # apidoc skip
@@ -3505,6 +3538,9 @@ class PetriNet(object):
                     result.add_input(arc["source"], arc["target"], label)
                 else:
                     result.add_output(arc["target"], arc["source"], label)
+        for pg in tree.get_children("page"):
+            result.pages += [pg.to_obj()]
+        setRealname(result, tree)
         return result
 
     # apidoc skip
@@ -4521,6 +4557,98 @@ class PetriNet(object):
             else:
                 self.add_output(place, target, MultiArc(labels))
 
+
+class Page(PetriNet):
+    __pnmltag__ = "page"
+
+    @classmethod
+    def __pnmlload__(cls, tree):
+        """Create a `Page` from a PNML tree"""
+        result = cls(tree["id"])
+        for stmt in tree.get_children("declare"):
+            result.declare(stmt.data)
+        for glbl in tree.get_children("global"):
+            result.globals[glbl["name"]] = glbl.child().to_obj()
+
+        for place in tree.get_children("place"):
+            result.add_place(place.to_obj())
+        for trans in tree.get_children("transition"):
+            result.add_transition(trans.to_obj())
+
+        # START with my changes
+        result.pages = []
+        for pg in tree.get_children("page"):
+            result.pages += [pg.to_obj()]
+        for rp in tree.get_children("referencePlace"):
+            result.add_place(rp.to_obj())
+        for rp in tree.get_children("referenceTransition"):
+            result.add_place(rp.to_obj())
+        setRealname(result, tree)
+        # END with my changes
+
+        for arc in tree.get_children("arc"):
+            if not arc.has_child("inscription"):
+                label = Value(dot)
+            else:
+                lbl = arc.child("inscription")
+                if lbl.has_child("text"):
+                    nbr = int(lbl.child("text").data)
+                    if nbr == 0:
+                        label = None
+                    elif nbr == 1:
+                        label = Value(dot)
+                    else:
+                        label = MultiArc([Value(dot)] * nbr)
+                else:
+                    label = lbl.child().to_obj()
+            if label is None:
+                pass
+            elif result.has_place(arc["source"]):
+                result.add_input(arc["source"], arc["target"], label)
+            else:
+                result.add_output(arc["target"], arc["source"], label)
+        return result
+
+    def __pnmldump__ (self) :
+        result = Tree(self.__pnmltag__, None, id=self.name)
+        for pg in self.pages:
+            result.add_child(Tree.from_obj(pg))
+        #result = page
+        decl = {}
+        exec("pass", decl)
+        for stmt in self._declare :
+            try :
+                exec(stmt, decl)
+                result.add_child(Tree("declare", stmt))
+            except :
+                pass
+        for name, value in self.globals :
+            if name not in decl :
+                try :
+                    result.add_child(Tree("global", None, Tree.from_obj(value),
+                                          name=name))
+                except :
+                    pass
+        for place in self.place() :
+            result.add_child(Tree.from_obj(place))
+        for trans in self.transition() :
+            result.add_child(Tree.from_obj(trans))
+        for trans in self.transition() :
+            for place, label in trans.input() :
+                result.add_child(Tree("arc", None,
+                                      *(self._pnml_dump_arc(label)),
+                                      **{"id" : "%s:%s" % (place.name,
+                                                           trans.name),
+                                         "source" : place.name,
+                                         "target" : trans.name}))
+            for place, label in trans.output() :
+                result.add_child(Tree("arc", None,
+                                      *(self._pnml_dump_arc(label)),
+                                      **{"id" : "%s:%s" % (trans.name,
+                                                           place.name),
+                                         "source" : trans.name,
+                                         "target" : place.name}))
+        return result
 
 ##
 ## marking graph

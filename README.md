@@ -1,5 +1,15 @@
-SNAKES is the Net Algebra Kit for Editors and Simulators
-========================================================
+Fork of SNAKES is the Net Algebra Kit for Editors and Simulators
+================================================================
+
+
+Comparing this fork over the original:
+
+* Added: Pages, ReferencePlace, ReferenceTransition
+  * especially for better pnml comatability
+* improved customizability of gv arcs
+* pep8 style with yapf
+* No python2 support
+
 
 SNAKES is a Python library that provides all the necessary to define
 and execute many sorts of Petri nets, in particular algebras of Petri
