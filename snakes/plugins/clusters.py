@@ -424,7 +424,11 @@ def extend(module):
         @classmethod
         def __pnmlload__(cls, tree):
             result = new_instance(cls, module.PetriNet.__pnmlload__(tree))
-            result.clusters = tree.child(Cluster.__pnmltag__).to_obj()
+            try:
+                result.clusters = tree.child(Cluster.__pnmltag__).to_obj()
+            except snakes.SnakesError:
+                result.clusters = Cluster()
+                print("No cluster specified inside pnml")
             return result
 
         def remove_place(self, name, **options):
