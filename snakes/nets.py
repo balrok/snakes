@@ -4601,6 +4601,16 @@ class Page(PetriNet):
                         label = MultiArc([Value(dot)] * nbr)
                 else:
                     label = lbl.child().to_obj()
+            # START with my changes support inhibitor arcs from tool "nd" (tina)
+            if arc.has_child("type") and arc.child("type")["value"] == "inhibitor":
+                nbr = 1
+                if arc.has_child("inscription"):
+                    lbl = arc.child("inscription")
+                    if lbl.has_child("text"):
+                        nbr = int(lbl.child("text").data)
+                label = Inhibitor(Value(nbr))
+            # END with my changes for inhibitor arcs
+
             if label is None:
                 pass
             elif result.has_place(arc["source"]):
