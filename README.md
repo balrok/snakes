@@ -4,8 +4,13 @@ Fork of SNAKES is the Net Algebra Kit for Editors and Simulators
 
 Comparing this fork over the original:
 
-* Added: Pages, ReferencePlace, ReferenceTransition
-  * especially for better pnml comatability
+* Better PNML support
+  * tested tools
+    * from nd (http://projects.laas.fr/tina/download.php)
+    * from EPNK (http://www.imm.dtu.dk/~ekki/projects/ePNK/)
+  * New features
+    * Pages, ReferencePlace, ReferenceTransition
+    * inhibitor arc from nd
 * improved customizability of gv arcs
 * pep8 style with yapf
 * No python2 support
