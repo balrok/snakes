@@ -11,7 +11,13 @@ Comparing this fork over the original:
   * New features
     * Pages, ReferencePlace, ReferenceTransition
     * inhibitor arc from nd
-* improved customizability of gv arcs
+    * petrinet/place/transition have a realname attribute now
+      * will try to use the label as defined in pnml - otherwise id
+* plugin/clusters
+  * some bugs related to pnml and when no cluster was specified
+* plugin/gv
+  * improved customizability of gv arcs
+  * fixed some bugs
 * pep8 style with yapf
 * No python2 support
 

@@ -211,7 +211,10 @@ class Cluster(object):
         if name in self._cluster:
             self._cluster[name].remove_node(name)
         else:
-            self._nodes.remove(name)
+            try:
+                self._nodes.remove(name)
+            except KeyError:
+                pass
 
     def rename_node(self, old, new):
         """Change a name in the cluster.
@@ -239,8 +242,11 @@ class Cluster(object):
             self._cluster[new] = self._cluster[old]
             del self._cluster[old]
         elif old in self._nodes:
-            self._nodes.remove(old)
-            self._nodes.add(new)
+            try:
+                self._nodes.remove(old)
+                self._nodes.add(new)
+            except KeyError:
+                pass
         else:
             for child in self.children():
                 child.rename_node(old, new)
@@ -428,7 +434,7 @@ def extend(module):
                 result.clusters = tree.child(Cluster.__pnmltag__).to_obj()
             except snakes.SnakesError:
                 result.clusters = Cluster()
-                print("No cluster specified inside pnml")
+                print("No cluster specified inside pnml - creating one")
             return result
 
         def remove_place(self, name, **options):
