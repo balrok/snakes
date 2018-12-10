@@ -2151,13 +2151,15 @@ class Place(Node):
         result = Tree(self.__pnmltag__, None, id=self.name)
         if (isinstance(self._check, Instance)
                 and self._check._class is BlackToken):
-            result.add_child(
-                Tree("initialMarking", None, Tree("text", str(
-                    len(self.tokens)))))
+            if self.tokens is not None:
+                result.add_child(
+                    Tree("initialMarking", None, Tree("text", str(
+                        len(self.tokens)))))
         else:
             result.add_child(Tree.from_obj(self._check))
-            result.add_child(
-                Tree("initialMarking", None, Tree.from_obj(self.tokens)))
+            if self.tokens is not None:
+                result.add_child(
+                    Tree("initialMarking", None, Tree.from_obj(self.tokens)))
         return result
 
     # apidoc skip
@@ -2366,11 +2368,16 @@ class Place(Node):
 
 """ used by Page """
 class ReferencePlace(Place):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.tokens = None
+
     __pnmltag__ = "referencePlace"
     @classmethod
     def __pnmlload__(cls, tree):
         result = super().__pnmlload__(tree)
         result.ref = tree["ref"]
+        result.tokens = None
         return result
 
 
