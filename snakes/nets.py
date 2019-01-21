@@ -3525,6 +3525,7 @@ class PetriNet(object):
                 result.add_transition(trans.to_obj())
         for branch in (tree, ) + tuple(tree.get_children("page")):
             for arc in branch.get_children("arc"):
+                nbr = 1
                 if not arc.has_child("inscription"):
                     label = Value(dot)
                 else:
@@ -3539,6 +3540,10 @@ class PetriNet(object):
                             label = MultiArc([Value(dot)] * nbr)
                     else:
                         label = lbl.child().to_obj()
+                # START with my changes support inhibitor arcs from tool "nd" (tina)
+                if arc.has_child("type") and arc.child("type")["value"] == "inhibitor":
+                    label = Inhibitor(Value(nbr))
+                # END with my changes for inhibitor arcs
                 if label is None:
                     pass
                 elif result.has_place(arc["source"]):
@@ -4594,6 +4599,7 @@ class Page(PetriNet):
         # END with my changes
 
         for arc in tree.get_children("arc"):
+            nbr = 1
             if not arc.has_child("inscription"):
                 label = Value(dot)
             else:
@@ -4610,11 +4616,6 @@ class Page(PetriNet):
                     label = lbl.child().to_obj()
             # START with my changes support inhibitor arcs from tool "nd" (tina)
             if arc.has_child("type") and arc.child("type")["value"] == "inhibitor":
-                nbr = 1
-                if arc.has_child("inscription"):
-                    lbl = arc.child("inscription")
-                    if lbl.has_child("text"):
-                        nbr = int(lbl.child("text").data)
                 label = Inhibitor(Value(nbr))
             # END with my changes for inhibitor arcs
 
