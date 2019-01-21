@@ -3380,6 +3380,12 @@ class PetriNet(object):
                                                     (x == Value(dot)
                                                      for x in label)):
             return (Tree("inscription", None, Tree("text", str(len(label)))), )
+        elif isinstance(label, Inhibitor):
+            # TODO: besides "text", we should add this for better compatibility with snakes
+            # (Tree("inscription", None, Tree.from_obj(label)), )
+            return (Tree("type", None, value="inhibitor"),
+                Tree("inscription", None, Tree("text", str(label._annotation.value)))
+            )
         return (Tree("inscription", None, Tree.from_obj(label)), )
 
     # apidoc skip
