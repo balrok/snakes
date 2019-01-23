@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import sys, os
 sys.path.insert(0, ".")
 import snakes
@@ -25,5 +28,5 @@ if __name__ == "__main__" :
     elif sys.argv[1:] == ["next"] :
         next()
     else :
-        print("usage: python version.py [check|next]")
+        print("usage: python version_helper.py [check|next]")
         sys.exit(255)
