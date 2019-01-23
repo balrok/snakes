@@ -3380,9 +3380,13 @@ class PetriNet(object):
                                                     (x == Value(dot)
                                                      for x in label)):
             return (Tree("inscription", None, Tree("text", str(len(label)))), )
-        elif isinstance(label, Inhibitor):
-            # TODO: besides "text", we should add this for better compatibility with snakes
-            # (Tree("inscription", None, Tree.from_obj(label)), )
+        elif isinstance(label, Inhibitor) and label._annotation is not None and hasattr(label._annotation, "value") and isinstance(label._annotation.value, int):
+            # this is done to be more compatible with tina - in the end I found, that tina does not support inhibitor
+            # arcs so well
+            # But this version of snakes can also cope with this kind of weight specification for inhibitor arcs
+            # so everything is fine.
+            # if the weight uses colored tokens - this code will fall back to the original Tree.from_obj(label)
+            # TODO have Tree("text") and Tree.from_obj in parallel here
             return (Tree("type", None, value="inhibitor"),
                 Tree("inscription", None, Tree("text", str(label._annotation.value)))
             )
